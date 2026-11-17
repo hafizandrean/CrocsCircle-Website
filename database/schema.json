@@ -1,0 +1,487 @@
+{
+  "system": "CrocsCircle.ID",
+  "version": "1.2.0",
+  "description": "Production E-Commerce, Multi-Vendor Consignment, Inventory, FIFO Batch Tracking & Financial Management System",
+  "brand_colors": {
+    "primary": "#173B35",
+    "accent": "#37B89D",
+    "background": "#F5F7F7",
+    "surface": "#FFFFFF"
+  },
+  "tables": [
+    {
+      "sheet_name": "MASTER_PRODUK",
+      "primary_key": "product_id",
+      "columns": [
+        "product_id",
+        "product_name",
+        "category_id",
+        "model",
+        "description",
+        "image_url",
+        "sales_type",
+        "is_active",
+        "is_published",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "sheet_name": "VARIAN_PRODUK",
+      "primary_key": "variant_id",
+      "foreign_keys": { "product_id": "MASTER_PRODUK.product_id" },
+      "columns": [
+        "variant_id",
+        "product_id",
+        "color",
+        "size",
+        "sku",
+        "unit",
+        "catalog_price",
+        "reference_hpp",
+        "is_active"
+      ]
+    },
+    {
+      "sheet_name": "VENDORS",
+      "primary_key": "vendor_id",
+      "columns": [
+        "vendor_id",
+        "vendor_name",
+        "contact_person",
+        "phone",
+        "address",
+        "cooperation_type",
+        "consignment_fee_type",
+        "default_consignment_fee",
+        "purchase_incentive_default",
+        "fixed_vendor_share",
+        "min_selling_price",
+        "status",
+        "notes",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "sheet_name": "STOK",
+      "primary_key": "variant_id",
+      "foreign_keys": { "variant_id": "VARIAN_PRODUK.variant_id" },
+      "columns": [
+        "variant_id",
+        "owned_physical_stock",
+        "owned_reserved_stock",
+        "owned_available_stock",
+        "consignment_physical_stock",
+        "consignment_reserved_stock",
+        "consignment_available_stock",
+        "total_available_stock",
+        "minimum_stock",
+        "updated_at"
+      ]
+    },
+    {
+      "sheet_name": "MUTASI_STOK",
+      "primary_key": "movement_id",
+      "foreign_keys": { "variant_id": "VARIAN_PRODUK.variant_id" },
+      "columns": [
+        "movement_id",
+        "movement_date",
+        "variant_id",
+        "stock_category",
+        "movement_type",
+        "quantity",
+        "reference_type",
+        "reference_id",
+        "notes",
+        "created_by",
+        "created_at"
+      ]
+    },
+    {
+      "sheet_name": "PENJUALAN",
+      "primary_key": "sales_id",
+      "columns": [
+        "sales_id",
+        "transaction_date",
+        "sales_channel",
+        "sales_type",
+        "customer_name",
+        "payment_method",
+        "payment_status",
+        "gross_customer_payment",
+        "owned_sales_amount",
+        "vendor_incentive_amount",
+        "net_operational_revenue",
+        "total_hpp",
+        "gross_profit",
+        "idempotency_key",
+        "notes",
+        "created_by",
+        "created_at"
+      ]
+    },
+    {
+      "sheet_name": "DETAIL_PENJUALAN",
+      "primary_key": "sales_detail_id",
+      "foreign_keys": {
+        "sales_id": "PENJUALAN.sales_id",
+        "variant_id": "VARIAN_PRODUK.variant_id",
+        "vendor_id": "VENDORS.vendor_id",
+        "batch_id": "DETAIL_PEMBELIAN.purchase_detail_id"
+      },
+      "columns": [
+        "sales_detail_id",
+        "sales_id",
+        "variant_id",
+        "item_ownership",
+        "vendor_id",
+        "batch_id",
+        "reference_id",
+        "quantity",
+        "selling_price",
+        "hpp_unit",
+        "vendor_payable_unit",
+        "crocs_incentive_unit",
+        "subtotal",
+        "total_hpp",
+        "total_vendor_payable",
+        "total_crocs_incentive",
+        "vendor_paid_amount",
+        "vendor_remaining_payable",
+        "settlement_status"
+      ]
+    },
+    {
+      "sheet_name": "RETUR_PENJUALAN",
+      "primary_key": "return_id",
+      "foreign_keys": {
+        "sales_id": "PENJUALAN.sales_id",
+        "sales_detail_id": "DETAIL_PENJUALAN.sales_detail_id",
+        "variant_id": "VARIAN_PRODUK.variant_id"
+      },
+      "columns": [
+        "return_id",
+        "return_date",
+        "sales_id",
+        "sales_detail_id",
+        "variant_id",
+        "item_ownership",
+        "vendor_id",
+        "batch_id",
+        "reference_id",
+        "quantity",
+        "refund_amount",
+        "hpp_reversal",
+        "crocs_incentive_reversal",
+        "vendor_payable_reversal",
+        "reason",
+        "created_by",
+        "created_at"
+      ]
+    },
+    {
+      "sheet_name": "SETTLEMENT_VENDOR",
+      "primary_key": "settlement_id",
+      "foreign_keys": { "vendor_id": "VENDORS.vendor_id" },
+      "columns": [
+        "settlement_id",
+        "settlement_date",
+        "vendor_id",
+        "total_gross_payable",
+        "total_claims_deducted",
+        "total_net_payout",
+        "payment_method",
+        "bank_reference",
+        "receipt_url",
+        "notes",
+        "created_by",
+        "created_at"
+      ]
+    },
+    {
+      "sheet_name": "DETAIL_SETTLEMENT_VENDOR",
+      "primary_key": "settlement_detail_id",
+      "foreign_keys": {
+        "settlement_id": "SETTLEMENT_VENDOR.settlement_id",
+        "sales_detail_id": "DETAIL_PENJUALAN.sales_detail_id",
+        "claim_id": "KLAIM_VENDOR.claim_id"
+      },
+      "columns": [
+        "settlement_detail_id",
+        "settlement_id",
+        "allocation_type",
+        "sales_detail_id",
+        "claim_id",
+        "amount_allocated",
+        "notes"
+      ]
+    },
+    {
+      "sheet_name": "KLAIM_VENDOR",
+      "primary_key": "claim_id",
+      "foreign_keys": {
+        "vendor_id": "VENDORS.vendor_id",
+        "source_sales_detail_id": "DETAIL_PENJUALAN.sales_detail_id"
+      },
+      "columns": [
+        "claim_id",
+        "claim_date",
+        "vendor_id",
+        "source_sales_detail_id",
+        "source_sales_id",
+        "claim_amount",
+        "compensated_amount",
+        "remaining_claim",
+        "claim_status",
+        "notes",
+        "created_by",
+        "created_at"
+      ]
+    },
+    {
+      "sheet_name": "PRE_ORDER",
+      "primary_key": "po_id",
+      "foreign_keys": { "variant_id": "VARIAN_PRODUK.variant_id" },
+      "columns": [
+        "po_id",
+        "order_date",
+        "customer_name",
+        "customer_contact",
+        "variant_id",
+        "quantity",
+        "selling_price",
+        "total_order",
+        "supplier",
+        "estimated_arrival",
+        "payment_status",
+        "procurement_status",
+        "fulfillment_status",
+        "settlement_date",
+        "notes",
+        "created_by"
+      ]
+    },
+    {
+      "sheet_name": "PEMBAYARAN_PO",
+      "primary_key": "payment_id",
+      "foreign_keys": { "po_id": "PRE_ORDER.po_id" },
+      "columns": [
+        "payment_id",
+        "po_id",
+        "payment_date",
+        "amount",
+        "payment_method",
+        "notes",
+        "created_by"
+      ]
+    },
+    {
+      "sheet_name": "PEMBELIAN_STOK",
+      "primary_key": "purchase_id",
+      "foreign_keys": { "vendor_id": "VENDORS.vendor_id" },
+      "columns": [
+        "purchase_id",
+        "purchase_date",
+        "vendor_id",
+        "supplier_name",
+        "subtotal",
+        "shipping_cost",
+        "total_purchase",
+        "payment_status",
+        "receiving_status",
+        "notes",
+        "created_by"
+      ]
+    },
+    {
+      "sheet_name": "DETAIL_PEMBELIAN",
+      "primary_key": "purchase_detail_id",
+      "foreign_keys": {
+        "purchase_id": "PEMBELIAN_STOK.purchase_id",
+        "variant_id": "VARIAN_PRODUK.variant_id"
+      },
+      "columns": [
+        "purchase_detail_id",
+        "purchase_id",
+        "variant_id",
+        "quantity",
+        "remaining_qty",
+        "base_unit_cost",
+        "vendor_incentive",
+        "unit_cost",
+        "subtotal"
+      ]
+    },
+    {
+      "sheet_name": "PENGELUARAN",
+      "primary_key": "expense_id",
+      "columns": [
+        "expense_id",
+        "expense_date",
+        "category",
+        "activity",
+        "description",
+        "amount",
+        "payment_method",
+        "paid_by",
+        "receipt_url",
+        "notes",
+        "created_by"
+      ]
+    },
+    {
+      "sheet_name": "PEMBAGIAN_KEUNTUNGAN",
+      "primary_key": "allocation_id",
+      "foreign_keys": { "period_id": "PERIODE_KEUANGAN.period_id" },
+      "columns": [
+        "allocation_id",
+        "period_id",
+        "net_profit",
+        "owner1_percentage",
+        "owner1_amount",
+        "owner2_percentage",
+        "owner2_amount",
+        "emergency_percentage",
+        "emergency_amount",
+        "retained_percentage",
+        "retained_amount",
+        "allocation_date",
+        "status"
+      ]
+    },
+    {
+      "sheet_name": "PERIODE_KEUANGAN",
+      "primary_key": "period_id",
+      "columns": [
+        "period_id",
+        "month",
+        "year",
+        "period_status",
+        "closing_date",
+        "closed_by",
+        "closing_version",
+        "total_omzet",
+        "total_hpp",
+        "gross_profit",
+        "operational_expenses",
+        "net_profit",
+        "reopen_reason",
+        "reopened_by",
+        "reopened_at",
+        "notes"
+      ]
+    },
+    {
+      "sheet_name": "CLOSING_BULANAN",
+      "primary_key": "closing_id",
+      "foreign_keys": { "period_id": "PERIODE_KEUANGAN.period_id" },
+      "columns": [
+        "closing_id",
+        "period_id",
+        "closing_version",
+        "closing_date",
+        "closed_by",
+        "total_omzet",
+        "total_hpp",
+        "gross_profit",
+        "operational_expenses",
+        "net_profit",
+        "owner1_amount",
+        "owner2_amount",
+        "emergency_amount",
+        "retained_amount",
+        "notes",
+        "created_at"
+      ]
+    },
+    {
+      "sheet_name": "SALDO_DANA",
+      "primary_key": "fund_transaction_id",
+      "foreign_keys": { "period_id": "PERIODE_KEUANGAN.period_id" },
+      "columns": [
+        "fund_transaction_id",
+        "fund_type",
+        "transaction_date",
+        "period_id",
+        "transaction_type",
+        "amount",
+        "reference_id",
+        "notes",
+        "created_by"
+      ]
+    },
+    {
+      "sheet_name": "USERS",
+      "primary_key": "user_id",
+      "columns": [
+        "user_id",
+        "username",
+        "password_hash",
+        "role",
+        "full_name",
+        "is_active",
+        "failed_attempts",
+        "locked_until",
+        "session_token",
+        "session_expires_at",
+        "last_login_at",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "sheet_name": "PENGATURAN",
+      "primary_key": "setting_key",
+      "columns": [
+        "setting_key",
+        "setting_value",
+        "description",
+        "updated_by",
+        "updated_at"
+      ]
+    },
+    {
+      "sheet_name": "KATEGORI",
+      "primary_key": "category_id",
+      "columns": [
+        "category_id",
+        "category_name",
+        "description",
+        "is_active"
+      ]
+    },
+    {
+      "sheet_name": "LOG_AKTIVITAS",
+      "primary_key": "log_id",
+      "columns": [
+        "log_id",
+        "user_id",
+        "action",
+        "module",
+        "reference_id",
+        "description",
+        "timestamp"
+      ]
+    },
+    {
+      "sheet_name": "BATCH_KONSINYASI",
+      "primary_key": "consignment_lot_id",
+      "foreign_keys": {
+        "vendor_id": "VENDORS.vendor_id",
+        "variant_id": "VARIAN_PRODUK.variant_id"
+      },
+      "columns": [
+        "consignment_lot_id",
+        "vendor_id",
+        "variant_id",
+        "received_qty",
+        "remaining_qty",
+        "received_date",
+        "reference_id",
+        "created_by",
+        "status"
+      ]
+    }
+  ]
+}

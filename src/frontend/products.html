@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Produk & Inventaris — CrocsCircle.ID</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Loading Overlay during Auth Verification -->
+  <div id="authLoadingOverlay" style="position: fixed; inset: 0; background: #F1F5F9; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;">
+    <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: #173B35;"></i>
+    <p style="font-size: 0.9rem; font-weight: 600; color: #475569;">Memuat Manajemen Produk & Stok...</p>
+  </div>
+
+  <div class="admin-layout" id="adminMainLayout" style="display: none;">
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <i class="fa-solid fa-circle-notch" style="color: var(--accent); font-size: 1.4rem;"></i>
+        <div>
+          <h2>CrocsCircle<span style="color: var(--accent);">.ID</span></h2>
+          <span style="font-size: 0.72rem; color: #94A3B8;">Management Portal</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <div class="sidebar-item" data-nav="dashboard" onclick="window.location.href='admin.html'">
+          <i class="fa-solid fa-chart-line"></i> Dashboard
+        </div>
+        <div class="sidebar-item active" data-nav="products">
+          <i class="fa-solid fa-boxes-stacked"></i> Produk & Stok
+        </div>
+        <div class="sidebar-item" data-nav="sales" onclick="window.location.href='sales.html'">
+          <i class="fa-solid fa-cash-register"></i> Penjualan (POS)
+        </div>
+        <div class="sidebar-item" data-nav="preorder" onclick="window.location.href='preorder.html'">
+          <i class="fa-solid fa-clock-rotate-left"></i> Pre-Order
+        </div>
+        <div class="sidebar-item" data-nav="purchases" onclick="showPlaceholder('Pembelian Stok Supplier (Phase 3D)')">
+          <i class="fa-solid fa-truck-ramp-box"></i> Pembelian Stok
+        </div>
+        <div class="sidebar-item" data-nav="expenses" onclick="showPlaceholder('Pengeluaran Operasional (Phase 3D)')">
+          <i class="fa-solid fa-receipt"></i> Pengeluaran
+        </div>
+        
+        <!-- Owner Only Menus -->
+        <div class="sidebar-item owner-only" data-nav="vendor" onclick="showPlaceholder('Manajemen & Settlement Vendor (Phase 3E)')">
+          <i class="fa-solid fa-handshake"></i> Manajemen Vendor
+        </div>
+        <div class="sidebar-item owner-only" data-nav="finance" onclick="showPlaceholder('Laporan Keuangan & Tutup Buku (Phase 3E)')">
+          <i class="fa-solid fa-scale-balanced"></i> Laporan Keuangan
+        </div>
+        <div class="sidebar-item owner-only" data-nav="settings" onclick="showPlaceholder('Pengaturan Sistem (Phase 3E)')">
+          <i class="fa-solid fa-gear"></i> Pengaturan
+        </div>
+      </nav>
+
+      <div style="padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="index.html" class="sidebar-item" style="color: #8DF7E1; padding: 0.6rem 0.8rem; background: rgba(55,184,157,0.12);">
+          <i class="fa-solid fa-store"></i> Toko Publik
+        </a>
+        <button onclick="handleLogout()" class="sidebar-item" style="background: none; border: none; width: 100%; text-align: left; color: #FCA5A5; cursor: pointer;">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar (Logout)
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1 style="margin: 0; font-size: 1.35rem; font-weight: 800; color: var(--primary);">Manajemen Produk & Persediaan</h1>
+            <span style="display: inline-flex; align-items: center; gap: 0.4rem; background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; padding: 0.25rem 0.75rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700;">
+              <i class="fa-solid fa-box-archive" style="color: var(--accent);"></i> Real-Time Inventory
+            </span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">Katalog master produk, varian ukuran, pemisahan stok sendiri vs konsinyasi, dan penerimaan stok FIFO</p>
+        </div>
+        
+        <!-- User Profile Pill -->
+        <div style="display: flex; gap: 1rem; align-items: center; background: white; padding: 0.45rem 1rem; border-radius: var(--radius-full); border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;" id="userAvatar">
+            H
+          </div>
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);" id="userFullName">Memuat...</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);" id="userRoleBadge">Role: OWNER</div>
+          </div>
+          <button onclick="handleLogout()" title="Keluar" style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 4px; margin-left: 0.5rem;">
+            <i class="fa-solid fa-power-off"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- RBAC Notice Banner for Admin -->
+      <div id="adminRbacNotice" style="display: none; background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; padding: 0.85rem 1.25rem; border-radius: 10px; font-size: 0.85rem; margin-bottom: 1.25rem; align-items: center; gap: 0.75rem;">
+        <i class="fa-solid fa-shield-halved" style="font-size: 1.2rem; color: #3B82F6;"></i>
+        <div>
+          <strong>Mode Akses Operasional Admin:</strong> Anda dapat mengelola katalog, stok, dan penerimaan fisik barang. Kolom modal (HPP FIFO & reference HPP) disembunyikan sesuai hak akses RBAC server.
+        </div>
+      </div>
+
+      <!-- SUB-NAVIGATION TABS -->
+      <div style="display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border); margin-bottom: 1.5rem; overflow-x: auto;">
+        <button class="tab-btn active" id="tabBtnProducts" onclick="switchTab('products')" style="padding: 0.75rem 1.25rem; font-weight: 700; font-size: 0.9rem; background: none; border: none; cursor: pointer; border-bottom: 3px solid var(--primary); color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-layer-group"></i> Katalog Master Produk
+        </button>
+        <button class="tab-btn" id="tabBtnInventory" onclick="switchTab('inventory')" style="padding: 0.75rem 1.25rem; font-weight: 600; font-size: 0.9rem; background: none; border: none; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-boxes-stacked"></i> Stok & Varian (Inventaris)
+        </button>
+        <button class="tab-btn" id="tabBtnStockIn" onclick="switchTab('stockin')" style="padding: 0.75rem 1.25rem; font-weight: 600; font-size: 0.9rem; background: none; border: none; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-dolly"></i> Penerimaan Stok (Stock In)
+        </button>
+        <button class="tab-btn" id="tabBtnMovements" onclick="switchTab('movements')" style="padding: 0.75rem 1.25rem; font-weight: 600; font-size: 0.9rem; background: none; border: none; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-clock-rotate-left"></i> Riwayat Mutasi Stok
+        </button>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- TAB 1: KATALOG MASTER PRODUK -->
+      <!-- =================================================================== -->
+      <section id="sectionProducts" class="tab-content">
+        <!-- Controls: Search, Filter & Add Button -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+          <div style="display: flex; gap: 0.75rem; flex: 1; max-width: 650px;">
+            <div style="position: relative; flex: 1;">
+              <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94A3B8;"></i>
+              <input type="text" id="prodSearchInput" placeholder="Cari nama produk, model, ID..." style="width: 100%; padding: 0.6rem 1rem 0.6rem 2.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 0.88rem;" oninput="debounceProductSearch()">
+            </div>
+            <select id="prodCategoryFilter" style="padding: 0.6rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 0.88rem; background: white;" onchange="loadProducts()">
+              <option value="ALL">Semua Kategori</option>
+            </select>
+          </div>
+          <button onclick="openAddProductModal()" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.25rem;">
+            <i class="fa-solid fa-plus"></i> Tambah Produk Baru
+          </button>
+        </div>
+
+        <!-- Products Table -->
+        <div class="admin-card">
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th style="width: 80px;">Foto</th>
+                  <th>ID Produk</th>
+                  <th>Nama Produk & Model</th>
+                  <th>Kategori</th>
+                  <th style="text-align: center;">Jumlah Varian</th>
+                  <th style="text-align: right;">Total Fisik</th>
+                  <th style="text-align: right;">Siap Jual</th>
+                  <th style="text-align: center;">Status</th>
+                  <th style="text-align: center;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="productsTableBody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div id="productsEmptyState" style="display: none; padding: 3rem 1rem; text-align: center; color: var(--text-muted);">
+            <i class="fa-solid fa-box-open" style="font-size: 2.5rem; color: #CBD5E1; margin-bottom: 0.5rem;"></i>
+            <p style="font-weight: 600;">Belum Ada Produk Terdaftar</p>
+            <span style="font-size: 0.82rem;">Klik tombol "Tambah Produk Baru" untuk mendaftarkan katalog pertama.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- TAB 2: MANAJEMEN STOK & VARIAN (INVENTARIS) -->
+      <!-- =================================================================== -->
+      <section id="sectionInventory" class="tab-content" style="display: none;">
+        <!-- Stock KPI Banner -->
+        <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 1.25rem;">
+          <div class="kpi-card" style="border-left: 4px solid #475569;">
+            <div class="kpi-label">Total Fisik Gudang</div>
+            <div class="kpi-value" id="invTotalPhysical" style="font-size: 1.4rem;">0</div>
+            <div class="kpi-sub">Unit di rak penyimpanan</div>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid #F59E0B; background: #FFFDF5;">
+            <div class="kpi-label" style="color: #92400E;">Terkunci Booking PO</div>
+            <div class="kpi-value" id="invTotalReserved" style="font-size: 1.4rem; color: #D97706;">0</div>
+            <div class="kpi-sub">Reserved stock pesanan PO</div>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid #10B981; background: #F0FDF4;">
+            <div class="kpi-label" style="color: #065F46;">Total Siap Jual (Available)</div>
+            <div class="kpi-value" id="invTotalAvailable" style="font-size: 1.4rem; color: #059669;">0</div>
+            <div class="kpi-sub">Fisik - Reserved</div>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid var(--primary);">
+            <div class="kpi-label">Stok Milik Sendiri (OWNED)</div>
+            <div class="kpi-value" id="invTotalOwned" style="font-size: 1.4rem; color: var(--primary);">0</div>
+            <div class="kpi-sub">Persediaan FIFO CrocsCircle</div>
+          </div>
+          <div class="kpi-card" style="border-left: 4px solid #8B5CF6;">
+            <div class="kpi-label">Stok Titip Jual (VENDOR)</div>
+            <div class="kpi-value" id="invTotalConsignment" style="font-size: 1.4rem; color: #7C3AED;">0</div>
+            <div class="kpi-sub">Barang konsinyasi vendor</div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+          <div style="display: flex; gap: 0.75rem; flex: 1; max-width: 700px;">
+            <div style="position: relative; flex: 1;">
+              <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94A3B8;"></i>
+              <input type="text" id="invSearchInput" placeholder="Cari SKU, varian, ukuran, warna..." style="width: 100%; padding: 0.6rem 1rem 0.6rem 2.5rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 0.88rem;" oninput="debounceInventorySearch()">
+            </div>
+            <select id="invStatusFilter" style="padding: 0.6rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 0.88rem; background: white;" onchange="loadInventory()">
+              <option value="ALL">Semua Status Stok</option>
+              <option value="IN_STOCK">Tersedia (In Stock)</option>
+              <option value="LOW_STOCK">Menipis (Low Stock)</option>
+              <option value="OUT_OF_STOCK">Habis (Out of Stock)</option>
+            </select>
+          </div>
+          <button onclick="switchTab('stockin')" class="btn btn-outline" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.25rem;">
+            <i class="fa-solid fa-plus"></i> Terima Stok Baru (Stock In)
+          </button>
+        </div>
+
+        <!-- Inventory Table with Strict Ownership Separation -->
+        <div class="admin-card">
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>SKU Varian</th>
+                  <th>Produk & Warna</th>
+                  <th style="text-align: center;">Ukuran</th>
+                  <th style="text-align: right;">Harga Jual</th>
+                  <th style="text-align: right;" class="owner-cost-col">Modal FIFO</th>
+                  <th style="text-align: center; background: rgba(23, 59, 53, 0.05);">Stok Sendiri (OWNED)<br><span style="font-size: 0.7rem; font-weight: normal;">Fisik | Booking | Siap</span></th>
+                  <th style="text-align: center; background: rgba(139, 92, 246, 0.05);">Stok Vendor (CONSIGN)<br><span style="font-size: 0.7rem; font-weight: normal;">Fisik | Booking | Siap</span></th>
+                  <th style="text-align: right;">Total Siap Jual</th>
+                  <th style="text-align: center;">Status</th>
+                  <th style="text-align: center;">Batch FIFO</th>
+                </tr>
+              </thead>
+              <tbody id="inventoryTableBody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- TAB 3: PENERIMAAN STOK (STOCK IN: SUPPLIER & CONSIGNMENT) -->
+      <!-- =================================================================== -->
+      <section id="sectionStockIn" class="tab-content" style="display: none;">
+        <div style="max-width: 900px; margin: 0 auto;">
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <div>
+                <h3 style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-dolly"></i> Form Penerimaan Stok (Stock In)</h3>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">Catat barang masuk secara akurat: Pembelian Supplier (FIFO) atau Barang Titipan Konsinyasi Vendor.</p>
+              </div>
+            </div>
+
+            <form id="stockInForm" onsubmit="handleStockInSubmit(event)" style="padding: 1.25rem;">
+              <!-- Ownership Type Selector -->
+              <div style="background: #F8FAFC; border: 1px solid var(--border); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                <label style="font-weight: 700; font-size: 0.9rem; color: var(--text-main); display: block; margin-bottom: 0.6rem;">Pilih Tipe Kepemilikan Barang Masuk:</label>
+                <div style="display: flex; gap: 2rem;">
+                  <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 600;">
+                    <input type="radio" name="ownershipType" value="OWN_STOCK" checked onchange="toggleOwnershipFields()">
+                    <span>A. Pembelian Stok Supplier (Milik CrocsCircle / FIFO)</span>
+                  </label>
+                  <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #7C3AED;">
+                    <input type="radio" name="ownershipType" value="VENDOR_CONSIGNMENT" onchange="toggleOwnershipFields()">
+                    <span>B. Barang Titip Jual Vendor (Konsinyasi / HPP 0)</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Vendor Selection (Only for CONSIGNMENT) -->
+              <div id="consignmentFields" style="display: none; margin-bottom: 1.25rem; background: #FAF5FF; border: 1px solid #E9D5FF; padding: 1rem; border-radius: 8px;">
+                <label style="font-weight: 700; font-size: 0.85rem; color: #6B21A8; display: block; margin-bottom: 0.4rem;">Pilih Vendor Konsinyasi:</label>
+                <select id="stockInVendorSelect" style="width: 100%; padding: 0.65rem; border: 1px solid #D8B4FE; border-radius: 6px; background: white; font-size: 0.88rem;">
+                  <!-- Populated dynamically -->
+                </select>
+                <span style="font-size: 0.74rem; color: #7E22CE; margin-top: 0.35rem; display: block;">Barang konsinyasi tidak membebani HPP CrocsCircle dan hak vendor dicatat terpisah saat terjual.</span>
+              </div>
+
+              <!-- Supplier Purchase Header (Only for OWN_STOCK) -->
+              <div id="supplierFields" style="display: block; margin-bottom: 1.25rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                  <div>
+                    <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Nama Supplier / Sumber Pengadaan:</label>
+                    <input type="text" id="stockInSupplierName" placeholder="Contoh: Supplier Resmi Jakarta" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+                  </div>
+                  <div>
+                    <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">No. Purchase / Invoice (Opsional):</label>
+                    <input type="text" id="stockInPurchaseId" placeholder="Otomatis jika dikosongkan" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Item Selection & Details -->
+              <div style="border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+                <h4 style="font-size: 0.9rem; margin: 0 0 0.85rem 0; color: var(--primary);"><i class="fa-solid fa-list-check"></i> Detail Varian & Kuantitas Fisik</h4>
+                
+                <div style="margin-bottom: 1rem;">
+                  <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Pilih SKU / Varian Produk:</label>
+                  <select id="stockInVariantSelect" required style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; background: white; font-size: 0.88rem;">
+                    <option value="">-- Pilih SKU Varian --</option>
+                  </select>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                  <div>
+                    <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Jumlah Kuantitas Diterima (Pcs):</label>
+                    <input type="number" id="stockInQuantity" min="1" required placeholder="Contoh: 10" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700;">
+                  </div>
+
+                  <div id="costInputWrapper">
+                    <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Harga Modal Satuan (Rp) / Unit Cost:</label>
+                    <input type="number" id="stockInUnitCost" min="0" placeholder="Contoh: 550000" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+                    <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">Menjadi harga dasar batch FIFO persediaan CrocsCircle.</span>
+                  </div>
+                </div>
+
+                <div style="margin-top: 1rem;">
+                  <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Catatan Penerimaan / No. Resi / Keterangan:</label>
+                  <input type="text" id="stockInNotes" placeholder="Catatan opsional..." style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+                </div>
+              </div>
+
+              <!-- Partial Delivery Checkbox for Supplier -->
+              <div id="partialDeliveryWrapper" style="margin-bottom: 1.25rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-main); cursor: pointer;">
+                  <input type="checkbox" id="stockInIsPartial">
+                  <span>Ini adalah pengiriman bertahap (penerimaan sebagian / partial receipt)</span>
+                </label>
+              </div>
+
+              <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                <button type="reset" class="btn btn-outline">Reset Form</button>
+                <button type="submit" id="stockInSubmitBtn" class="btn btn-primary" style="padding: 0.75rem 1.75rem;">
+                  <i class="fa-solid fa-check-circle"></i> Konfirmasi Penerimaan Stok
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- TAB 4: RIWAYAT MUTASI STOK (AUDIT TRAIL) -->
+      <!-- =================================================================== -->
+      <section id="sectionMovements" class="tab-content" style="display: none;">
+        <!-- Controls -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+          <div style="display: flex; gap: 0.75rem; flex: 1; max-width: 700px;">
+            <input type="text" id="movSearchInput" placeholder="Filter SKU..." style="flex: 1; padding: 0.6rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 0.88rem;" oninput="debounceMovementSearch()">
+            <select id="movCategoryFilter" style="padding: 0.6rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 0.88rem; background: white;" onchange="loadStockMovements()">
+              <option value="ALL">Semua Kepemilikan</option>
+              <option value="OWNED">Stok Sendiri (OWNED)</option>
+              <option value="CONSIGNMENT">Konsinyasi (CONSIGNMENT)</option>
+            </select>
+            <select id="movTypeFilter" style="padding: 0.6rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 0.88rem; background: white;" onchange="loadStockMovements()">
+              <option value="ALL">Semua Aktivitas</option>
+              <option value="PURCHASE_RECEIPT">Penerimaan Pembelian</option>
+              <option value="CONSIGNMENT_RECEIPT">Titipan Konsinyasi</option>
+              <option value="SALES_DISPATCH">Penjualan Kasir</option>
+              <option value="STOCK_RESERVATION">Reservasi PO</option>
+              <option value="PO_FULFILLMENT">Pemenuhan PO</option>
+              <option value="RETURN_IN">Retur Masuk</option>
+              <option value="STOCK_ADJUSTMENT">Opname / Penyesuaian</option>
+            </select>
+          </div>
+          <button onclick="loadStockMovements()" class="btn btn-outline" style="padding: 0.6rem 1rem;">
+            <i class="fa-solid fa-rotate"></i> Refresh
+          </button>
+        </div>
+
+        <div class="admin-card">
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Waktu</th>
+                  <th>SKU & Varian</th>
+                  <th>Produk</th>
+                  <th style="text-align: center;">Kepemilikan</th>
+                  <th style="text-align: center;">Jenis Aktivitas</th>
+                  <th style="text-align: right;">Kuantitas</th>
+                  <th>Batch / Referensi Transaksi</th>
+                  <th>Aktor</th>
+                </tr>
+              </thead>
+              <tbody id="movementsTableBody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div id="movementsEmptyState" style="display: none; padding: 3rem 1rem; text-align: center; color: var(--text-muted);">
+            <i class="fa-solid fa-list-check" style="font-size: 2.5rem; color: #CBD5E1; margin-bottom: 0.5rem;"></i>
+            <p style="font-weight: 600;">Belum Ada Riwayat Pergerakan Stok</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- MODAL: TAMBAH / EDIT PRODUK -->
+  <!-- =================================================================== -->
+  <div id="productModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; box-shadow: var(--shadow-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+        <h3 id="productModalTitle" style="margin: 0; font-size: 1.15rem; color: var(--primary);">Tambah Master Produk Baru</h3>
+        <button onclick="closeProductModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #94A3B8;">&times;</button>
+      </div>
+
+      <form id="productForm" onsubmit="handleProductFormSubmit(event)">
+        <input type="hidden" id="modalProductId">
+        
+        <div style="margin-bottom: 1rem;">
+          <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Nama Produk *</label>
+          <input type="text" id="modalProductName" required placeholder="Contoh: Crocs Classic Clog" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Model Crocs</label>
+            <input type="text" id="modalProductModel" placeholder="Contoh: Classic, Echo, Mega Crush" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+          </div>
+          <div>
+            <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Kategori *</label>
+            <select id="modalProductCategory" required style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; background: white;">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">URL Foto Produk</label>
+          <input type="url" id="modalProductImage" placeholder="https://..." style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Deskripsi Produk</label>
+          <textarea id="modalProductDesc" rows="3" placeholder="Informasi material, fitur, dan panduan ukuran..." style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 1.5rem; margin-bottom: 1.25rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; cursor: pointer;">
+            <input type="checkbox" id="modalProductActive" checked>
+            <span>Aktif (Dapat Ditransaksikan)</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; cursor: pointer;">
+            <input type="checkbox" id="modalProductPublished" checked>
+            <span>Tampilkan di Toko Publik</span>
+          </label>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+          <button type="button" onclick="closeProductModal()" class="btn btn-outline">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Simpan Produk</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- MODAL: TAMBAH VARIAN PRODUK -->
+  <!-- =================================================================== -->
+  <div id="variantModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; box-shadow: var(--shadow-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+        <div>
+          <h3 style="margin: 0; font-size: 1.15rem; color: var(--primary);">Tambah Varian Ukuran & Warna</h3>
+          <span style="font-size: 0.78rem; color: var(--text-muted);" id="variantModalSubtitle">Produk: -</span>
+        </div>
+        <button onclick="closeVariantModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #94A3B8;">&times;</button>
+      </div>
+
+      <form id="variantForm" onsubmit="handleVariantFormSubmit(event)">
+        <input type="hidden" id="modalVarProductId">
+        <input type="hidden" id="modalVarId">
+
+        <div style="margin-bottom: 1rem;">
+          <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">SKU Varian (Wajib Unik) *</label>
+          <input type="text" id="modalVarSku" required placeholder="Contoh: CRC-CLS-BN-W7" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700; text-transform: uppercase;">
+          <span style="font-size: 0.74rem; color: #DC2626; display: block; margin-top: 0.2rem;" id="skuErrorText"></span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Warna</label>
+            <input type="text" id="modalVarColor" placeholder="Contoh: Bone, Black" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+          </div>
+          <div>
+            <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Ukuran Standar Crocs *</label>
+            <input type="text" id="modalVarSize" required placeholder="W6, W7, M8, M9, J1..." style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; text-transform: uppercase;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div>
+            <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Harga Jual Katalog (Rp) *</label>
+            <input type="number" id="modalVarCatalogPrice" required min="0" placeholder="1099000" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700;">
+          </div>
+          <div class="owner-cost-col">
+            <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Reference HPP (Rp)</label>
+            <input type="number" id="modalVarRefHpp" min="0" placeholder="600000" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+          <button type="button" onclick="closeVariantModal()" class="btn btn-outline">Batal</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Simpan Varian</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- MODAL: DETAIL PRODUK & DAFTAR VARIAN -->
+  <!-- =================================================================== -->
+  <div id="productDetailModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; width: 100%; max-width: 850px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; box-shadow: var(--shadow-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+        <div>
+          <h3 id="detailModalProductName" style="margin: 0; font-size: 1.2rem; color: var(--primary);">Detail Produk</h3>
+          <span id="detailModalCategory" style="font-size: 0.8rem; color: var(--text-muted);">Kategori: -</span>
+        </div>
+        <button onclick="closeProductDetailModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #94A3B8;">&times;</button>
+      </div>
+
+      <!-- Varian Section Inside Detail -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <h4 style="font-size: 0.95rem; color: var(--text-main); margin: 0;"><i class="fa-solid fa-boxes-stacked"></i> Daftar Varian Ukuran & Stok</h4>
+        <button onclick="openAddVariantFromDetail()" class="btn btn-primary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem;">
+          <i class="fa-solid fa-plus"></i> Tambah Varian
+        </button>
+      </div>
+
+      <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 8px;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Warna</th>
+              <th>Ukuran</th>
+              <th style="text-align: right;">Harga Jual</th>
+              <th style="text-align: center;">Stok Sendiri</th>
+              <th style="text-align: center;">Stok Konsinyasi</th>
+              <th style="text-align: right;">Total Siap Jual</th>
+            </tr>
+          </thead>
+          <tbody id="detailModalVariantsBody">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.25rem;">
+        <button type="button" onclick="closeProductDetailModal()" class="btn btn-outline">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- MODAL: BATCH FIFO DETAILS -->
+  <!-- =================================================================== -->
+  <div id="batchModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; box-shadow: var(--shadow-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+        <div>
+          <h3 style="margin: 0; font-size: 1.15rem; color: var(--primary);"><i class="fa-solid fa-layer-group"></i> Antrean Batch FIFO Persediaan</h3>
+          <span id="batchModalSku" style="font-size: 0.8rem; color: var(--text-muted);">SKU: -</span>
+        </div>
+        <button onclick="closeBatchModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #94A3B8;">&times;</button>
+      </div>
+
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem;">
+        Daftar batch persediaan stok milik sendiri yang aktif. Saat terjadi penjualan, sistem secara otomatis mengambil unit dari batch paling atas (FIFO).
+      </p>
+
+      <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 8px;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Batch ID</th>
+              <th>No. PO / Ref</th>
+              <th style="text-align: right;">Sisa Qty</th>
+              <th style="text-align: right;" class="owner-cost-col">Unit Cost</th>
+            </tr>
+          </thead>
+          <tbody id="batchModalTableBody">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+        <h4 style="font-size: 0.95rem; color: #7C3AED; margin: 0 0 0.5rem 0;">
+          <i class="fa-solid fa-handshake"></i> Lot Konsinyasi Vendor (BATCH_KONSINYASI)
+        </h4>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+          Stok titipan terisolasi per vendor. Setiap penjualan wajib memotong kuantitas lot milik vendor yang bersangkutan secara FIFO.
+        </p>
+        <div style="overflow-x: auto; border: 1px solid var(--border); border-radius: 8px;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Lot ID</th>
+                <th>Vendor</th>
+                <th style="text-align: right;">Sisa Qty</th>
+                <th style="text-align: center;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="consignmentLotModalTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.25rem;">
+        <button type="button" onclick="closeBatchModal()" class="btn btn-outline">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/products.js"></script>
+</body>
+</html>

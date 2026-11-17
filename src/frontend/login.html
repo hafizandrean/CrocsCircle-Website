@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Admin — CrocsCircle.ID</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body style="background: #F1F5F9; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem;">
+
+  <div style="width: 100%; max-width: 420px; background: #FFFFFF; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04); border: 1px solid #E2E8F0; overflow: hidden;">
+    
+    <!-- Header Banner -->
+    <div style="background: linear-gradient(135deg, #173B35 0%, #24574E 100%); color: white; padding: 2.25rem 2rem; text-align: center;">
+      <div style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px;">
+        <i class="fa-solid fa-circle-notch" style="color: #37B89D;"></i>
+        CrocsCircle<span style="color: #37B89D;">.ID</span>
+      </div>
+      <p style="font-size: 0.85rem; color: #D1E5E1; margin-top: 0.4rem;">Portal Autentikasi Pengelola & Manajemen</p>
+    </div>
+
+    <!-- Login Form Container -->
+    <div style="padding: 2rem;">
+
+      <!-- Alert Error Box -->
+      <div id="loginErrorAlert" style="display: none; background: #FEE2E2; border: 1px solid #FCA5A5; color: #991B1B; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.82rem; margin-bottom: 1.25rem; align-items: center; gap: 0.5rem;">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="loginErrorMessage">Username atau password tidak valid.</span>
+      </div>
+
+      <form id="adminLoginForm" onsubmit="handleLoginSubmit(event)">
+        <!-- Username Input -->
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+          <label for="usernameInput" style="font-size: 0.82rem; font-weight: 600; color: #1E293B; display: block; margin-bottom: 0.4rem;">
+            Username / Akun *
+          </label>
+          <div style="position: relative;">
+            <i class="fa-solid fa-user" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94A3B8; font-size: 0.9rem;"></i>
+            <input type="text" id="usernameInput" class="form-control" placeholder="Contoh: hafiz / harits / admin1" required style="padding-left: 2.5rem;" autocomplete="username">
+          </div>
+        </div>
+
+        <!-- Password Input with Toggle -->
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label for="passwordInput" style="font-size: 0.82rem; font-weight: 600; color: #1E293B; display: block; margin-bottom: 0.4rem;">
+            Kata Sandi (Password) *
+          </label>
+          <div style="position: relative;">
+            <i class="fa-solid fa-lock" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94A3B8; font-size: 0.9rem;"></i>
+            <input type="password" id="passwordInput" class="form-control" placeholder="••••••••" required style="padding-left: 2.5rem; padding-right: 2.75rem;" autocomplete="current-password">
+            <button type="button" id="togglePasswordBtn" onclick="togglePasswordVisibility()" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94A3B8; cursor: pointer; padding: 4px 6px;">
+              <i class="fa-solid fa-eye" id="togglePasswordIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit Button with Loading State -->
+        <button type="submit" id="loginSubmitBtn" class="cart-btn" style="width: 100%; justify-content: center; padding: 0.85rem; font-size: 0.92rem; border-radius: 8px;">
+          <span id="btnText"><i class="fa-solid fa-right-to-bracket" style="margin-right: 6px;"></i> Masuk ke Dashboard</span>
+          <span id="btnSpinner" style="display: none;">
+            <i class="fa-solid fa-circle-notch fa-spin"></i> Memverifikasi Kredensial...
+          </span>
+        </button>
+      </form>
+
+      <!-- Role Explanation Note -->
+      <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px dashed #E2E8F0; text-align: center;">
+        <span style="font-size: 0.75rem; color: #64748B;">
+          <i class="fa-solid fa-shield-halved" style="color: #37B89D;"></i> Keamanan PBKDF2 25.000 Putaran & Backend RBAC
+        </span>
+        <div style="margin-top: 0.5rem;">
+          <a href="index.html" style="font-size: 0.8rem; color: #24574E; font-weight: 600;">
+            <i class="fa-solid fa-arrow-left"></i> Kembali ke Katalog Publik
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/admin_auth.js"></script>
+</body>
+</html>

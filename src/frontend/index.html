@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CrocsCircle.ID — Authentic Crocs Footwear & Jibbitz</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Top Announcement Bar -->
+  <div style="background: #0F2824; color: #8DF7E1; font-size: 0.78rem; text-align: center; padding: 6px 1rem; font-weight: 600; letter-spacing: 0.3px;">
+    🚀 100% Original Guaranteed • Ready Stock Kirim Hari Ini • Pre-Order Best Price • WhatsApp Order
+  </div>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="brand-logo">
+        <i class="fa-solid fa-circle-notch" style="color: var(--accent);"></i>
+        CrocsCircle<span style="color: var(--accent);">.ID</span>
+        <span class="brand-badge">AUTHENTIC</span>
+      </a>
+
+      <div class="nav-search">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="searchInput" placeholder="Cari model Crocs (Classic, Echo, Mega Crush, Jibbitz)...">
+      </div>
+
+      <div class="nav-actions">
+        <a href="admin.html" class="btn-nav-admin">
+          <i class="fa-solid fa-gauge-high"></i> Admin Portal
+        </a>
+        <button class="cart-btn" id="openCartBtn">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span>Keranjang</span>
+          <span class="cart-badge" id="cartCountBadge">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Banner -->
+  <section class="hero-banner">
+    <div class="hero-content">
+      <span class="hero-tagline">Curated Footwear Collection</span>
+      <h1 class="hero-title">Step into Comfort with Authentic Crocs</h1>
+      <p class="hero-desc">Koleksi terlengkap Crocs original siap kirim (Ready Stock) dan pesanan khusus Pre-Order (PO) dengan jaminan uang kembali 100% jika terbukti fake.</p>
+      
+      <div class="hero-features">
+        <div class="hero-feat-item"><i class="fa-solid fa-shield-halved" style="color: var(--accent);"></i> 100% Original Authentic</div>
+        <div class="hero-feat-item"><i class="fa-solid fa-truck-fast" style="color: var(--accent);"></i> Ready Stock Langsung Kirim</div>
+        <div class="hero-feat-item"><i class="fa-solid fa-calendar-check" style="color: var(--accent);"></i> Pre-Order DP Mulai 50%</div>
+        <div class="hero-feat-item"><i class="fa-brands fa-whatsapp" style="color: #25D366;"></i> Instant WhatsApp Checkout</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Shop Section -->
+  <main class="main-container">
+    <div class="shop-toolbar">
+      <!-- Tabs Ready Stock vs PO -->
+      <div class="catalog-tabs">
+        <button class="tab-btn active" data-tab="ALL">Semua Produk</button>
+        <button class="tab-btn" data-tab="READY">⚡ Ready Stock</button>
+        <button class="tab-btn" data-tab="PO">📦 Pre-Order (PO)</button>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-group">
+        <select class="select-filter" id="categoryFilter">
+          <option value="ALL">Semua Kategori</option>
+          <option value="Classic Clog">Classic Clog</option>
+          <option value="Echo Clog">Echo Clog</option>
+          <option value="Mega Crush">Mega Crush</option>
+          <option value="Crush Clog">Crush Clog</option>
+          <option value="Sandal / Slide">Sandal / Slide</option>
+          <option value="Jibbitz Charm">Jibbitz Charm</option>
+        </select>
+
+        <select class="select-filter" id="sizeFilter">
+          <option value="ALL">Semua Size</option>
+          <option value="W6">W6 (36-37)</option>
+          <option value="W7">W7 (37-38)</option>
+          <option value="W8">W8 (38-39)</option>
+          <option value="M8/W10">M8/W10 (41-42)</option>
+          <option value="M9/W11">M9/W11 (42-43)</option>
+          <option value="M10/W12">M10/W12 (43-44)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="product-grid" id="productGrid">
+      <!-- Rendered dynamically via storefront.js -->
+    </div>
+  </main>
+
+  <!-- Cart Drawer -->
+  <div class="drawer-backdrop" id="cartBackdrop"></div>
+  <aside class="cart-drawer" id="cartDrawer">
+    <div class="drawer-header">
+      <h3><i class="fa-solid fa-bag-shopping" style="color: var(--accent);"></i> Keranjang Belanja</h3>
+      <button class="close-btn" id="closeCartBtn">&times;</button>
+    </div>
+
+    <div class="drawer-content" id="cartItemsList">
+      <!-- Dynamic cart items -->
+    </div>
+
+    <div class="drawer-footer" id="cartFooter">
+      <div class="cart-total-row">
+        <span>Total Estimasi:</span>
+        <span id="cartTotalPrice" style="color: var(--primary);">Rp0</span>
+      </div>
+
+      <!-- Customer Checkout Form -->
+      <div style="margin-bottom: 1rem; background: #fff; padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+        <div class="form-group" style="margin-bottom: 0.6rem;">
+          <label style="font-size: 0.78rem;">Nama Lengkap Penerima *</label>
+          <input type="text" id="custName" class="form-control" placeholder="Contoh: Budi Santoso" style="padding: 0.45rem 0.7rem; font-size: 0.82rem;">
+        </div>
+        <div class="form-group" style="margin-bottom: 0.6rem;">
+          <label style="font-size: 0.78rem;">Nomor WhatsApp *</label>
+          <input type="tel" id="custPhone" class="form-control" placeholder="Contoh: 081234567890" style="padding: 0.45rem 0.7rem; font-size: 0.82rem;">
+        </div>
+        <div class="form-group" style="margin-bottom: 0.6rem;">
+          <label style="font-size: 0.78rem;">Alamat Pengiriman Lengkap *</label>
+          <textarea id="custAddress" class="form-control" rows="2" placeholder="Jl. Sudirman No 10, Jakarta Selatan" style="padding: 0.45rem 0.7rem; font-size: 0.82rem;"></textarea>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label style="font-size: 0.78rem;">Pilihan Pembayaran</label>
+          <select id="custPayment" class="form-control" style="padding: 0.45rem 0.7rem; font-size: 0.82rem;">
+            <option value="Transfer BCA">Transfer BCA (CrocsCircle Official)</option>
+            <option value="Transfer Mandiri">Transfer Mandiri</option>
+            <option value="QRIS">QRIS (Gopay/OVO/ShopeePay)</option>
+            <option value="DP 50% (Khusus Pre-Order)">DP 50% (Khusus Pre-Order)</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="btn-checkout-wa" id="checkoutWaBtn">
+        <i class="fa-brands fa-whatsapp" style="font-size: 1.2rem;"></i> Pesan Sekarang via WhatsApp
+      </button>
+    </div>
+  </aside>
+
+  <!-- Product Detail Modal -->
+  <div class="modal-backdrop" id="productModal">
+    <div class="modal-dialog">
+      <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+        <h3 id="modalProductTitle" style="font-size: 1.1rem; font-weight: 700; color: var(--primary);">Detail Produk</h3>
+        <button class="close-btn" id="closeModalBtn">&times;</button>
+      </div>
+      <div class="modal-body" id="modalProductBody">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer style="background: #0F2824; color: #94A3B8; padding: 3rem 1.5rem 2rem; margin-top: 4rem; border-top: 1px solid rgba(255,255,255,0.08);">
+    <div style="max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 2rem;">
+      <div>
+        <div class="brand-logo" style="color: #fff; margin-bottom: 0.75rem;">
+          <i class="fa-solid fa-circle-notch" style="color: var(--accent);"></i> CrocsCircle<span style="color: var(--accent);">.ID</span>
+        </div>
+        <p style="font-size: 0.85rem; line-height: 1.6; color: #CBD5E1;">Toko Crocs terpercaya dengan pilihan Ready Stock terlengkap dan layanan Pre-Order eksklusif dengan harga terbaik se-Indonesia.</p>
+      </div>
+      <div>
+        <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 0.75rem;">Layanan Customer</h4>
+        <ul style="list-style: none; font-size: 0.85rem; line-height: 2;">
+          <li><i class="fa-solid fa-check" style="color: var(--accent);"></i> Panduan Ukuran (Size Chart)</li>
+          <li><i class="fa-solid fa-check" style="color: var(--accent);"></i> Cek Keaslian Produk</li>
+          <li><i class="fa-solid fa-check" style="color: var(--accent);"></i> Syarat & Ketentuan PO</li>
+          <li><i class="fa-solid fa-check" style="color: var(--accent);"></i> Garansi Retur Size</li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 0.75rem;">Hubungi Kami</h4>
+        <p style="font-size: 0.85rem; line-height: 1.7; color: #CBD5E1;">
+          <i class="fa-brands fa-whatsapp" style="color: #25D366; margin-right: 6px;"></i> WhatsApp Admin: +62 812-3456-7890<br>
+          <i class="fa-brands fa-instagram" style="color: #E1306C; margin-right: 6px;"></i> Instagram: @crocscircle.id<br>
+          <i class="fa-solid fa-location-dot" style="color: var(--accent); margin-right: 6px;"></i> Warehouse: Jakarta & Tangerang
+        </p>
+      </div>
+    </div>
+    <div style="max-width: 1280px; margin: 2rem auto 0; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.08); text-align: center; font-size: 0.78rem; color: #64748B;">
+      © 2026 CrocsCircle.ID. All rights reserved. E-Commerce & Inventory Management Platform.
+    </div>
+  </footer>
+
+  <script src="js/storefront.js"></script>
+</body>
+</html>

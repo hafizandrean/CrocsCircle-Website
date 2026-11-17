@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manajemen Pre-Order (PO) — CrocsCircle.ID</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .po-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .po-metric-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.15rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .po-metric-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .status-unpaid { background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; }
+    .status-partial { background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A; }
+    .status-paid { background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0; }
+    .status-refunded { background: #FEE2E2; color: #B91C1C; border: 1px solid #FECACA; }
+    
+    .status-proc-not { background: #F1F5F9; color: #64748B; border: 1px solid #E2E8F0; }
+    .status-proc-ordered { background: #E0F2FE; color: #0369A1; border: 1px solid #BAE6FD; }
+    .status-proc-received { background: #F3E8FF; color: #7E22CE; border: 1px solid #E9D5FF; }
+
+    .status-ful-not { background: #F8FAFC; color: #64748B; border: 1px solid #E2E8F0; }
+    .status-ful-delivered { background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; }
+    .status-ful-cancelled { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+
+    .po-table th, .po-table td {
+      padding: 10px 8px;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Overlay during Auth Verification -->
+  <div id="authLoadingOverlay" style="position: fixed; inset: 0; background: #F1F5F9; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;">
+    <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: #173B35;"></i>
+    <p style="font-size: 0.9rem; font-weight: 600; color: #475569;">Memverifikasi Sesi Pre-Order Portal...</p>
+  </div>
+
+  <div class="admin-layout" id="poMainLayout" style="display: none;">
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <i class="fa-solid fa-circle-notch" style="color: var(--accent); font-size: 1.4rem;"></i>
+        <div>
+          <h2>CrocsCircle<span style="color: var(--accent);">.ID</span></h2>
+          <span style="font-size: 0.72rem; color: #94A3B8;">Management Portal</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <div class="sidebar-item" data-nav="dashboard" onclick="window.location.href='admin.html'">
+          <i class="fa-solid fa-chart-line"></i> Dashboard
+        </div>
+        <div class="sidebar-item" data-nav="products" onclick="window.location.href='products.html'">
+          <i class="fa-solid fa-boxes-stacked"></i> Produk & Stok
+        </div>
+        <div class="sidebar-item" data-nav="sales" onclick="window.location.href='sales.html'">
+          <i class="fa-solid fa-cash-register"></i> Penjualan (POS)
+        </div>
+        <div class="sidebar-item active" data-nav="preorder">
+          <i class="fa-solid fa-clock-rotate-left"></i> Pre-Order
+        </div>
+        <div class="sidebar-item" data-nav="purchases" onclick="showPlaceholder('Pembelian Stok Supplier (Phase 3D Sub-Modul 3)')">
+          <i class="fa-solid fa-truck-ramp-box"></i> Pembelian Stok
+        </div>
+        <div class="sidebar-item" data-nav="expenses" onclick="showPlaceholder('Pengeluaran Operasional (Phase 3D Sub-Modul 4)')">
+          <i class="fa-solid fa-receipt"></i> Pengeluaran
+        </div>
+        
+        <!-- Owner Only Menus -->
+        <div class="sidebar-item owner-only" data-nav="vendor" onclick="showPlaceholder('Manajemen & Settlement Vendor (Phase 3E)')">
+          <i class="fa-solid fa-handshake"></i> Manajemen Vendor
+        </div>
+        <div class="sidebar-item owner-only" data-nav="finance" onclick="showPlaceholder('Laporan Keuangan & Tutup Buku (Phase 3E)')">
+          <i class="fa-solid fa-scale-balanced"></i> Laporan Keuangan
+        </div>
+        <div class="sidebar-item owner-only" data-nav="settings" onclick="showPlaceholder('Pengaturan Sistem (Phase 3E)')">
+          <i class="fa-solid fa-gear"></i> Pengaturan
+        </div>
+      </nav>
+
+      <div style="padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="index.html" class="sidebar-item" style="color: #8DF7E1; padding: 0.6rem 0.8rem; background: rgba(55,184,157,0.12);">
+          <i class="fa-solid fa-store"></i> Toko Publik
+        </a>
+        <button onclick="handleLogout()" class="sidebar-item" style="background: none; border: none; width: 100%; text-align: left; color: #FCA5A5; cursor: pointer;">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar (Logout)
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1 style="margin: 0;">Manajemen Pre-Order (PO)</h1>
+            <span style="display: inline-flex; align-items: center; gap: 0.4rem; background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; padding: 0.25rem 0.75rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700;">
+              <i class="fa-solid fa-shield-halved" style="color: var(--accent);"></i>
+              <span>DP Liabilitas & Omzet Lunas</span>
+            </span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">Pengelolaan pesanan Pre-Order, pelacakan DP/pelunasan, status pengadaan supplier, dan penyerahan barang pelanggan.</p>
+        </div>
+        
+        <!-- User Profile Pill -->
+        <div style="display: flex; gap: 1rem; align-items: center; background: white; padding: 0.45rem 1rem; border-radius: var(--radius-full); border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;" id="userAvatar">
+            H
+          </div>
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);" id="userFullName">Memuat...</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);" id="userRoleBadge">Role: OWNER</div>
+          </div>
+          <button onclick="handleLogout()" title="Keluar" style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 4px; margin-left: 0.5rem;">
+            <i class="fa-solid fa-power-off"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- SECTION 1: METRICS PRE-ORDER -->
+      <div class="po-metrics-grid">
+        <div class="po-metric-card">
+          <div class="po-metric-icon" style="background: #E0F2FE; color: #0369A1;">
+            <i class="fa-solid fa-boxes-packing"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">TOTAL PO AKTIF</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: var(--primary);" id="metricActivePOCount">0</div>
+          </div>
+        </div>
+
+        <div class="po-metric-card">
+          <div class="po-metric-icon" style="background: #FEF3C7; color: #D97706;">
+            <i class="fa-solid fa-hand-holding-dollar"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">
+              DANA TITIPAN DP
+              <i class="fa-solid fa-circle-info" title="Uang muka pelanggan - dicatat sebagai Liabilitas bukan Omzet" style="font-size: 0.68rem; color: #94A3B8;"></i>
+            </div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #B45309;" id="metricTotalDPAmount">Rp0</div>
+          </div>
+        </div>
+
+        <div class="po-metric-card">
+          <div class="po-metric-icon" style="background: #F3E8FF; color: #7E22CE;">
+            <i class="fa-solid fa-truck-ramp-box"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">BARANG TELAH TIBA</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #7E22CE;" id="metricReceivedPOCount">0</div>
+          </div>
+        </div>
+
+        <div class="po-metric-card">
+          <div class="po-metric-icon" style="background: #ECFDF5; color: #059669;">
+            <i class="fa-solid fa-chart-line"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">
+              OMZET PO DIAKUI (BULAN INI)
+              <i class="fa-solid fa-circle-check" title="Omzet resmi yang telah LUNAS pada bulan berjalan" style="font-size: 0.68rem; color: var(--accent);"></i>
+            </div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #047857;" id="metricRecognizedOmzet">Rp0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: ACTION BAR & FILTERS -->
+      <div style="background: white; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-sm);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display: flex; gap: 0.5rem; flex: 1; min-width: 280px;">
+            <div style="position: relative; flex: 1;">
+              <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+              <input type="text" id="poSearchInput" placeholder="Cari nama pelanggan, WhatsApp, ID PO, atau varian..." style="width: 100%; padding: 0.55rem 0.75rem 0.55rem 2.2rem; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.82rem;" oninput="handlePoSearch(this.value)">
+            </div>
+          </div>
+          <button onclick="openCreatePOModal()" class="admin-btn" style="background: var(--primary); color: white; border: none; padding: 0.6rem 1.1rem; border-radius: 8px; font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+            <i class="fa-solid fa-plus"></i> Buat Pesanan Pre-Order
+          </button>
+        </div>
+
+        <!-- Filter Selectors -->
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <select id="filterPaymentStatus" style="padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; background: white;" onchange="loadPOList()">
+            <option value="ALL">Semua Pembayaran</option>
+            <option value="UNPAID">Belum Bayar (UNPAID)</option>
+            <option value="PARTIAL">Uang Muka / DP (PARTIAL)</option>
+            <option value="PAID">Lunas (PAID)</option>
+            <option value="REFUNDED">Refund Penuh</option>
+          </select>
+
+          <select id="filterProcurementStatus" style="padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; background: white;" onchange="loadPOList()">
+            <option value="ALL">Semua Pengadaan</option>
+            <option value="NOT_ORDERED">Belum Dipesan Supplier</option>
+            <option value="ORDERED">Sudah Dipesan Supplier</option>
+            <option value="IN_TRANSIT">Dalam Pengiriman</option>
+            <option value="RECEIVED">Barang Telah Tiba</option>
+          </select>
+
+          <select id="filterFulfillmentStatus" style="padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; background: white;" onchange="loadPOList()">
+            <option value="ALL">Semua Penyerahan</option>
+            <option value="NOT_DELIVERED">Belum Diserahkan</option>
+            <option value="READY_FOR_PICKUP">Siap Diambil / Kirim</option>
+            <option value="DELIVERED">Selesai Diserahkan</option>
+            <option value="CANCELLED">Dibatalkan</option>
+          </select>
+
+          <input type="date" id="poStartDate" style="padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem;" onchange="loadPOList()" title="Tanggal Mulai">
+          <input type="date" id="poEndDate" style="padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem;" onchange="loadPOList()" title="Tanggal Selesai">
+
+          <button onclick="loadPOList()" class="admin-btn" style="padding: 0.45rem 0.75rem; font-size: 0.8rem; background: #F1F5F9; color: var(--text-main); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">
+            <i class="fa-solid fa-rotate-right"></i> Muat Ulang
+          </button>
+        </div>
+      </div>
+
+      <!-- SECTION 3: DATA TABLE PRE-ORDER -->
+      <div style="background: white; border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); overflow: hidden;">
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse;" class="po-table admin-table">
+            <thead>
+              <tr style="background: #F8FAFC; border-bottom: 1.5px solid var(--border);">
+                <th style="text-align: left;">No. PO & Tanggal</th>
+                <th style="text-align: left;">Pelanggan & Kontak</th>
+                <th style="text-align: left;">Produk & Varian</th>
+                <th style="text-align: right;">Total Tagihan</th>
+                <th style="text-align: right;">Terbayar (DP/Lunas)</th>
+                <th style="text-align: right;">Sisa Tagihan</th>
+                <th style="text-align: center;">Status Bayar</th>
+                <th style="text-align: center;">Pengadaan Supplier</th>
+                <th style="text-align: center;">Penyerahan</th>
+                <th style="text-align: center;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="poTableBody">
+              <tr>
+                <td colspan="10" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                  <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.8rem; color: var(--accent); margin-bottom: 0.5rem;"></i>
+                  <p>Memuat daftar pesanan Pre-Order...</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- MODAL 1: BUAT PRE-ORDER BARU -->
+  <div id="createPOModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; width: 90%; max-width: 640px; padding: 1.5rem; box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--primary); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-plus-circle" style="color: var(--accent);"></i> Buat Pesanan Pre-Order (PO)
+        </h3>
+        <button onclick="closeCreatePOModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+        <div>
+          <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Nama Pelanggan (Wajib):</label>
+          <input type="text" id="newPoCustomerName" placeholder="Contoh: Budi Santoso" style="width: 100%; padding: 0.5rem; border: 1.5px solid var(--border); border-radius: 6px; font-size: 0.85rem;">
+        </div>
+        <div>
+          <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">No. WhatsApp Pelanggan:</label>
+          <input type="text" id="newPoCustomerContact" placeholder="Contoh: 08123456789" style="width: 100%; padding: 0.5rem; border: 1.5px solid var(--border); border-radius: 6px; font-size: 0.85rem;">
+        </div>
+      </div>
+
+      <!-- Pilih Varian Produk PO -->
+      <div style="margin-bottom: 0.75rem;">
+        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Varian Produk yang Dipesan:</label>
+        <select id="newPoVariantSelect" style="width: 100%; padding: 0.5rem; border: 1.5px solid var(--border); border-radius: 6px; font-size: 0.82rem; background: white;" onchange="handlePoVariantChange()">
+          <option value="">-- Pilih Varian Produk --</option>
+        </select>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+        <div>
+          <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Kuantitas (Pcs):</label>
+          <input type="number" id="newPoQuantity" value="1" min="1" style="width: 100%; padding: 0.5rem; border: 1.5px solid var(--border); border-radius: 6px; font-size: 0.85rem; font-weight: 700;" oninput="calculatePoTotal()">
+        </div>
+        <div>
+          <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Harga Jual Sepakat (Rp/Unit):</label>
+          <input type="number" id="newPoPrice" value="0" min="0" step="10000" style="width: 100%; padding: 0.5rem; border: 1.5px solid var(--border); border-radius: 6px; font-size: 0.85rem; font-weight: 700;" oninput="calculatePoTotal()">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+        <div>
+          <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Supplier / Vendor Pengadaan:</label>
+          <input type="text" id="newPoSupplier" placeholder="Contoh: Supplier Korea / Dzaki" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem;">
+        </div>
+        <div>
+          <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Estimasi Tiba (Target ETA):</label>
+          <input type="date" id="newPoEta" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem;">
+        </div>
+      </div>
+
+      <!-- Total Preview -->
+      <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted);">Total Tagihan PO:</span>
+        <span style="font-size: 1.15rem; font-weight: 800; color: var(--primary);" id="newPoTotalOrderPreview">Rp0</span>
+      </div>
+
+      <!-- Pembayaran DP Awal (Opsional) -->
+      <div style="border: 1px dashed var(--accent); background: #F0FDF4; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: #166534;">Pembayaran DP Langsung (Opsional)</span>
+          <span style="font-size: 0.7rem; color: #64748B;">Dicatat sebagai titipan DP</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          <div>
+            <label style="font-size: 0.72rem; color: #475569; display: block; margin-bottom: 0.2rem;">Nominal DP (Rp):</label>
+            <input type="number" id="newPoDpAmount" value="0" min="0" step="50000" style="width: 100%; padding: 0.4rem; border: 1px solid #BBF7D0; border-radius: 6px; font-size: 0.8rem; font-weight: 700;">
+          </div>
+          <div>
+            <label style="font-size: 0.72rem; color: #475569; display: block; margin-bottom: 0.2rem;">Metode Bayar:</label>
+            <select id="newPoDpMethod" style="width: 100%; padding: 0.4rem; border: 1px solid #BBF7D0; border-radius: 6px; font-size: 0.8rem; background: white;">
+              <option value="TRANSFER_BCA">Transfer BCA</option>
+              <option value="QRIS">QRIS</option>
+              <option value="CASH">Tunai</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Catatan Khusus:</label>
+        <input type="text" id="newPoNotes" placeholder="Catatan size khusus, nomor resi pesanan, dll." style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem;">
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button onclick="closeCreatePOModal()" class="admin-btn" style="background: #F1F5F9; color: var(--text-main); border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">Batal</button>
+        <button id="saveNewPoBtn" onclick="submitCreatePO()" class="admin-btn" style="background: var(--primary); color: white; border: none; padding: 0.5rem 1.25rem; font-weight: 700; border-radius: 6px; cursor: pointer;">
+          <i class="fa-solid fa-floppy-disk"></i> Simpan Pre-Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: CATAT PEMBAYARAN (DP / PELUNASAN) -->
+  <div id="paymentModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; width: 90%; max-width: 480px; padding: 1.5rem; box-shadow: var(--shadow-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: #15803D; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-money-bill-wave"></i> Catat Pembayaran PO
+        </h3>
+        <button onclick="closePaymentModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <div id="paymentPoInfo" style="margin-bottom: 1rem; background: #F8FAFC; border: 1px solid var(--border); padding: 0.75rem; border-radius: 8px; font-size: 0.8rem; line-height: 1.5;">
+        <!-- Filled by JS -->
+      </div>
+
+      <div style="margin-bottom: 0.75rem;">
+        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Nominal Pembayaran (Rp):</label>
+        <input type="number" id="poPaymentAmountInput" min="1" step="10000" style="width: 100%; padding: 0.55rem; border: 1.5px solid var(--border); border-radius: 6px; font-size: 0.95rem; font-weight: 800;">
+      </div>
+
+      <div style="margin-bottom: 0.75rem;">
+        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Metode Pembayaran:</label>
+        <select id="poPaymentMethodSelect" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem; background: white;">
+          <option value="TRANSFER_BCA">Transfer Bank BCA</option>
+          <option value="QRIS">QRIS</option>
+          <option value="CASH">Tunai (Cash)</option>
+          <option value="DEBIT_CARD">Kartu Debit</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Catatan Pembayaran:</label>
+        <input type="text" id="poPaymentNotesInput" placeholder="Contoh: Pelunasan sisa tagihan PO" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem;">
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button onclick="closePaymentModal()" class="admin-btn" style="background: #F1F5F9; color: var(--text-main); border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">Batal</button>
+        <button id="submitPaymentBtn" onclick="submitPoPayment()" class="admin-btn" style="background: #15803D; color: white; border: none; padding: 0.5rem 1.25rem; font-weight: 700; border-radius: 6px; cursor: pointer;">
+          <i class="fa-solid fa-check"></i> Simpan Pembayaran
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: UPDATE STATUS PENGADAAN & PENERIMAAN FISIK -->
+  <div id="procurementModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; width: 90%; max-width: 480px; padding: 1.5rem; box-shadow: var(--shadow-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: #0369A1; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-truck-ramp-box"></i> Status Pengadaan Supplier
+        </h3>
+        <button onclick="closeProcurementModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <div id="procurementPoInfo" style="margin-bottom: 1rem; font-size: 0.82rem;">
+        <!-- Filled by JS -->
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">Pilih Status Pengadaan Baru:</label>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; cursor: pointer;">
+            <input type="radio" name="procStatusRadio" value="NOT_ORDERED">
+            <span><strong>Belum Dipesan (NOT_ORDERED)</strong> — Menunggu pemesanan ke supplier</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; cursor: pointer;">
+            <input type="radio" name="procStatusRadio" value="ORDERED">
+            <span><strong>Sudah Dipesan (ORDERED)</strong> — PO telah diproses ke supplier</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; cursor: pointer;">
+            <input type="radio" name="procStatusRadio" value="IN_TRANSIT">
+            <span><strong>Dalam Pengiriman (IN_TRANSIT)</strong> — Paket sedang dalam ekspedisi/kargo</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border: 1.5px solid #BBF7D0; background: #F0FDF4; border-radius: 6px; font-size: 0.8rem; cursor: pointer;">
+            <input type="radio" name="procStatusRadio" value="RECEIVED">
+            <span><strong>Barang Telah Tiba (RECEIVED)</strong> — Fisik barang sudah sampai dan siap dialokasikan</span>
+          </label>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button onclick="closeProcurementModal()" class="admin-btn" style="background: #F1F5F9; color: var(--text-main); border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">Batal</button>
+        <button id="saveProcurementBtn" onclick="submitProcurementStatus()" class="admin-btn" style="background: #0369A1; color: white; border: none; padding: 0.5rem 1.25rem; font-weight: 700; border-radius: 6px; cursor: pointer;">
+          <i class="fa-solid fa-floppy-disk"></i> Simpan Status
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: SERAH TERIMA BARANG (FULFILLMENT) -->
+  <div id="fulfillModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; width: 90%; max-width: 480px; padding: 1.5rem; box-shadow: var(--shadow-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: #047857; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-circle-check"></i> Konfirmasi Penyerahan Barang PO
+        </h3>
+        <button onclick="closeFulfillModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <div id="fulfillPoInfo" style="margin-bottom: 1rem; font-size: 0.82rem; line-height: 1.5; background: #F8FAFC; border: 1px solid var(--border); padding: 0.75rem; border-radius: 8px;">
+        <!-- Filled by JS -->
+      </div>
+
+      <p style="font-size: 0.8rem; color: #475569; margin-bottom: 1rem;">
+        Penyerahan barang akan memotong stok fisik yang telah direservasi dan menandai pesanan sebagai <strong>DELIVERED</strong>.
+        <br><span style="font-size: 0.72rem; color: #64748B;">*Penyerahan fisik tidak menciptakan omzet kedua karena omzet telah diakui pada tanggal pelunasan.</span>
+      </p>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button onclick="closeFulfillModal()" class="admin-btn" style="background: #F1F5F9; color: var(--text-main); border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">Batal</button>
+        <button id="confirmFulfillBtn" onclick="submitFulfillPO()" class="admin-btn" style="background: #047857; color: white; border: none; padding: 0.5rem 1.25rem; font-weight: 700; border-radius: 6px; cursor: pointer;">
+          <i class="fa-solid fa-hand-holding-hand"></i> Serahkan Barang
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: PEMBATALAN PO & REFUND -->
+  <div id="cancelPoModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; width: 90%; max-width: 500px; padding: 1.5rem; box-shadow: var(--shadow-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: #DC2626; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-ban"></i> Batalkan Pesanan Pre-Order
+        </h3>
+        <button onclick="closeCancelPOModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <div id="cancelPoInfo" style="margin-bottom: 1rem; font-size: 0.82rem; line-height: 1.5; background: #FEF2F2; border: 1px solid #FECACA; padding: 0.75rem; border-radius: 8px; color: #991B1B;">
+        <!-- Filled by JS -->
+      </div>
+
+      <div style="margin-bottom: 0.75rem;">
+        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Nominal Refund yang Dikembalikan ke Customer (Rp):</label>
+        <input type="number" id="cancelPoRefundAmountInput" min="0" value="0" style="width: 100%; padding: 0.5rem; border: 1.5px solid var(--border); border-radius: 6px; font-size: 0.9rem; font-weight: 800;">
+        <div style="font-size: 0.72rem; color: #64748B; margin-top: 0.2rem;" id="cancelPoMaxRefundNotice">Maksimal refund: Rp0</div>
+      </div>
+
+      <div style="margin-bottom: 0.75rem;">
+        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Metode Pengembalian Dana:</label>
+        <select id="cancelPoRefundMethodSelect" style="width: 100%; padding: 0.45rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; background: white;">
+          <option value="TRANSFER_BCA">Transfer Bank BCA</option>
+          <option value="CASH">Tunai (Cash)</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Alasan Pembatalan (Wajib):</label>
+        <textarea id="cancelPoReasonInput" rows="3" placeholder="Contoh: Barang supplier kehabisan stok / Pelanggan minta batal..." style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem;"></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button onclick="closeCancelPOModal()" class="admin-btn" style="background: #F1F5F9; color: var(--text-main); border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">Tutup</button>
+        <button id="confirmCancelPoBtn" onclick="submitCancelPO()" class="admin-btn" style="background: #DC2626; color: white; border: none; padding: 0.5rem 1.25rem; font-weight: 700; border-radius: 6px; cursor: pointer;">
+          <i class="fa-solid fa-ban"></i> Konfirmasi Pembatalan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6: TEMPLATE PESAN WHATSAPP -->
+  <div id="waTemplateModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; width: 90%; max-width: 520px; padding: 1.5rem; box-shadow: var(--shadow-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: #15803D; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-brands fa-whatsapp"></i> Template Pesan WhatsApp Pelanggan
+        </h3>
+        <button onclick="closeWaTemplateModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <div style="display: flex; gap: 0.4rem; margin-bottom: 0.75rem;">
+        <button onclick="generateWaText('DP_CONFIRM')" class="admin-btn" style="padding: 0.35rem 0.65rem; font-size: 0.75rem; background: #F0FDF4; color: #166534; border: 1px solid #BBF7D0; border-radius: 6px; font-weight: 700; cursor: pointer;">1. Konfirmasi DP</button>
+        <button onclick="generateWaText('ARRIVED_READY')" class="admin-btn" style="padding: 0.35rem 0.65rem; font-size: 0.75rem; background: #E0F2FE; color: #0369A1; border: 1px solid #BAE6FD; border-radius: 6px; font-weight: 700; cursor: pointer;">2. Barang Telah Tiba</button>
+        <button onclick="generateWaText('SETTLEMENT_DONE')" class="admin-btn" style="padding: 0.35rem 0.65rem; font-size: 0.75rem; background: #F3E8FF; color: #7E22CE; border: 1px solid #E9D5FF; border-radius: 6px; font-weight: 700; cursor: pointer;">3. Lunas & Terkirim</button>
+      </div>
+
+      <textarea id="waMessageTextarea" rows="9" style="width: 100%; padding: 0.75rem; border: 1.5px solid var(--border); border-radius: 8px; font-family: monospace; font-size: 0.8rem; margin-bottom: 1rem; line-height: 1.5;"></textarea>
+
+      <div style="display: flex; justify-content: space-between; gap: 0.5rem;">
+        <button onclick="copyWaText()" class="admin-btn" style="background: #F1F5F9; color: var(--text-main); border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+          <i class="fa-regular fa-copy"></i> Salin Teks
+        </button>
+        <button id="openWaDirectBtn" onclick="openWaDirect()" class="admin-btn" style="background: #25D366; color: white; border: none; padding: 0.5rem 1.25rem; font-weight: 700; border-radius: 6px; font-size: 0.8rem; cursor: pointer;">
+          <i class="fa-brands fa-whatsapp"></i> Buka WhatsApp Web
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/preorder.js"></script>
+</body>
+</html>

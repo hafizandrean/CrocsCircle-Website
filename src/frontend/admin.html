@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — CrocsCircle.ID</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Loading Overlay during Auth Verification -->
+  <div id="authLoadingOverlay" style="position: fixed; inset: 0; background: #F1F5F9; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;">
+    <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: #173B35;"></i>
+    <p style="font-size: 0.9rem; font-weight: 600; color: #475569;">Memverifikasi Sesi Autentikasi...</p>
+  </div>
+
+  <div class="admin-layout" id="adminMainLayout" style="display: none;">
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <i class="fa-solid fa-circle-notch" style="color: var(--accent); font-size: 1.4rem;"></i>
+        <div>
+          <h2>CrocsCircle<span style="color: var(--accent);">.ID</span></h2>
+          <span style="font-size: 0.72rem; color: #94A3B8;">Management Portal</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <div class="sidebar-item active" data-nav="dashboard" onclick="navigateTo('dashboard')">
+          <i class="fa-solid fa-chart-line"></i> Dashboard
+        </div>
+        <div class="sidebar-item" data-nav="products" onclick="window.location.href='products.html'">
+          <i class="fa-solid fa-boxes-stacked"></i> Produk & Stok
+        </div>
+        <div class="sidebar-item" data-nav="sales" onclick="window.location.href='sales.html'">
+          <i class="fa-solid fa-cash-register"></i> Penjualan (POS)
+        </div>
+        <div class="sidebar-item" data-nav="preorder" onclick="window.location.href='preorder.html'">
+          <i class="fa-solid fa-clock-rotate-left"></i> Pre-Order
+        </div>
+        <div class="sidebar-item" data-nav="purchases" onclick="showPlaceholder('Pembelian Stok Supplier (Phase 3D)')">
+          <i class="fa-solid fa-truck-ramp-box"></i> Pembelian Stok
+        </div>
+        <div class="sidebar-item" data-nav="expenses" onclick="showPlaceholder('Pengeluaran Operasional (Phase 3D)')">
+          <i class="fa-solid fa-receipt"></i> Pengeluaran
+        </div>
+        
+        <!-- Owner Only Menus -->
+        <div class="sidebar-item owner-only" data-nav="vendor" onclick="showPlaceholder('Manajemen & Settlement Vendor (Phase 3E)')">
+          <i class="fa-solid fa-handshake"></i> Manajemen Vendor
+        </div>
+        <div class="sidebar-item owner-only" data-nav="finance" onclick="showPlaceholder('Laporan Keuangan & Tutup Buku (Phase 3E)')">
+          <i class="fa-solid fa-scale-balanced"></i> Laporan Keuangan
+        </div>
+        <div class="sidebar-item owner-only" data-nav="settings" onclick="showPlaceholder('Pengaturan Sistem (Phase 3E)')">
+          <i class="fa-solid fa-gear"></i> Pengaturan
+        </div>
+      </nav>
+
+      <div style="padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="index.html" class="sidebar-item" style="color: #8DF7E1; padding: 0.6rem 0.8rem; background: rgba(55,184,157,0.12);">
+          <i class="fa-solid fa-store"></i> Toko Publik
+        </a>
+        <button onclick="handleLogout()" class="sidebar-item" style="background: none; border: none; width: 100%; text-align: left; color: #FCA5A5; cursor: pointer;">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar (Logout)
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1 id="topbarTitle" style="margin: 0;">Dashboard Ringkasan</h1>
+            <span id="dashboardPeriodBadge" style="display: inline-flex; align-items: center; gap: 0.4rem; background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; padding: 0.25rem 0.75rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700;">
+              <i class="fa-regular fa-calendar-check" style="color: var(--accent);"></i>
+              <span id="dashboardPeriodText">Periode: November 2026 (Bulan Berjalan)</span>
+            </span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;" id="topbarSubtitle">Informasi operasional dan ringkasan bisnis CrocsCircle bulan berjalan</p>
+        </div>
+        
+        <!-- User Profile Pill -->
+        <div style="display: flex; gap: 1rem; align-items: center; background: white; padding: 0.45rem 1rem; border-radius: var(--radius-full); border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;" id="userAvatar">
+            H
+          </div>
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);" id="userFullName">Memuat...</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);" id="userRoleBadge">Role: OWNER</div>
+          </div>
+          <button onclick="handleLogout()" title="Keluar" style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 4px; margin-left: 0.5rem;">
+            <i class="fa-solid fa-power-off"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- RBAC Notice Banner for Admin -->
+      <div id="adminRbacNotice" style="display: none; background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E40AF; padding: 0.85rem 1.25rem; border-radius: 10px; font-size: 0.85rem; margin-bottom: 1.5rem; align-items: center; gap: 0.75rem;">
+        <i class="fa-solid fa-shield-halved" style="font-size: 1.2rem; color: #3B82F6;"></i>
+        <div>
+          <strong>Akses Operasional Admin Aktif:</strong> Anda login dengan hak akses operasional. Metrik keuangan sensitif (HPP, Margin Laba, dan Alokasi Keuntungan) disembunyikan sesuai kebijakan RBAC server.
+        </div>
+      </div>
+
+      <!-- SECTION: OWNER FINANCIAL KPI CARDS -->
+      <div id="ownerFinancialSection">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-coins" style="color: var(--accent);"></i> Ringkasan Finansial Bulan Ini (Khusus Owner)
+            </h3>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">
+              *Angka keuangan di bawah mencerminkan transaksi <strong>bulan berjalan</strong> (bukan akumulasi seluruh waktu) sesuai pengakuan omzet dan HPP FIFO.
+            </p>
+          </div>
+        </div>
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Total Omzet Diakui</div>
+            <div class="kpi-value" id="kpiOmzet" style="color: var(--primary);">-</div>
+            <div class="kpi-sub" id="kpiOmzetSub">Stok Sendiri + Insentif + PO Lunas</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-label">Total HPP (FIFO)</div>
+            <div class="kpi-value" id="kpiHpp" style="color: #991B1B;">-</div>
+            <div class="kpi-sub">Snapshot modal FIFO barang terjual</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-label">Laba Kotor (Gross Margin)</div>
+            <div class="kpi-value" id="kpiGrossProfit" style="color: var(--primary-light);">-</div>
+            <div class="kpi-sub">Omzet - HPP</div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-label">Beban Operasional</div>
+            <div class="kpi-value" id="kpiExpenses" style="color: #D97706;">-</div>
+            <div class="kpi-sub">Biaya packing, transport & operasional</div>
+          </div>
+
+          <div class="kpi-card" style="border-top: 4px solid var(--accent);">
+            <div class="kpi-label">Laba Bersih Siap Bagi</div>
+            <div class="kpi-value" id="kpiNetProfit" style="color: var(--accent-hover);">-</div>
+            <div class="kpi-sub">Laba Kotor - Beban Operasional</div>
+          </div>
+
+          <div class="kpi-card" style="border-top: 4px solid #D97706; background: #FFFBEB;">
+            <div class="kpi-label" style="color: #92400E; font-weight: 700;">Restricted Cash (Kewajiban Vendor)</div>
+            <div class="kpi-value" id="kpiVendorPayables" style="color: #B45309;">-</div>
+            <div class="kpi-sub" style="color: #92400E; font-size: 0.74rem; line-height: 1.3;">
+              Kewajiban titip jual yang wajib disisihkan & dibayar ke vendor (<strong>BUKAN</strong> kas bebas CrocsCircle)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION: OPERATIONAL KPI CARDS (Both Owner & Admin) -->
+      <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-top: 1.5rem; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+        <i class="fa-solid fa-boxes-packing" style="color: var(--accent);"></i> Status Operasional & Persediaan Real-Time
+      </h3>
+      <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+        <!-- Stok Fisik -->
+        <div class="kpi-card" style="border-left: 4px solid #475569;">
+          <div class="kpi-label" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Stok Fisik di Gudang</span>
+            <i class="fa-solid fa-warehouse" style="color: #64748B;"></i>
+          </div>
+          <div class="kpi-value" id="kpiPhysicalStock" style="color: #1E293B;">0 <span style="font-size: 0.9rem; font-weight: 500;">Pcs</span></div>
+          <div class="kpi-sub">Total unit aktual di rak gudang</div>
+        </div>
+
+        <!-- Stok Direservasi PO -->
+        <div class="kpi-card" style="border-left: 4px solid #F59E0B; background: #FFFDF5;">
+          <div class="kpi-label" style="display: flex; justify-content: space-between; align-items: center; color: #B45309;">
+            <span>Stok Direservasi (PO)</span>
+            <i class="fa-solid fa-lock" style="color: #F59E0B;"></i>
+          </div>
+          <div class="kpi-value" id="kpiReservedStock" style="color: #D97706;">0 <span style="font-size: 0.9rem; font-weight: 500;">Pcs</span></div>
+          <div class="kpi-sub" style="color: #92400E;">Terkunci untuk pesanan Pre-Order</div>
+        </div>
+
+        <!-- Stok Siap Jual -->
+        <div class="kpi-card" style="border-left: 4px solid #10B981; background: #F0FDF4;">
+          <div class="kpi-label" style="display: flex; justify-content: space-between; align-items: center; color: #047857;">
+            <span>Stok Siap Jual (Available)</span>
+            <i class="fa-solid fa-circle-check" style="color: #10B981;"></i>
+          </div>
+          <div class="kpi-value" id="kpiAvailableStock" style="color: #059669;">0 <span style="font-size: 0.9rem; font-weight: 500;">Pcs</span></div>
+          <div class="kpi-sub" style="color: #065F46;">Fisik dikurangi Booking PO</div>
+        </div>
+
+        <!-- PO Aktif -->
+        <div class="kpi-card" style="border-left: 4px solid #3B82F6;">
+          <div class="kpi-label" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Pesanan PO Aktif</span>
+            <i class="fa-solid fa-clock-rotate-left" style="color: #3B82F6;"></i>
+          </div>
+          <div class="kpi-value" id="kpiActivePO" style="color: #2563EB;">0 <span style="font-size: 0.9rem; font-weight: 500;">PO</span></div>
+          <div class="kpi-sub">Menunggu pelunasan / serah</div>
+        </div>
+
+        <!-- Low Stock -->
+        <div class="kpi-card" style="border-left: 4px solid #EF4444;">
+          <div class="kpi-label" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Peringatan Stok Menipis</span>
+            <i class="fa-solid fa-triangle-exclamation" style="color: #EF4444;"></i>
+          </div>
+          <div class="kpi-value" id="kpiLowStock" style="color: var(--danger);">0 <span style="font-size: 0.9rem; font-weight: 500;">Item</span></div>
+          <div class="kpi-sub">Stok mencapai batas minimum</div>
+        </div>
+      </div>
+
+      <!-- TABLES GRID: LOW STOCK ALERTS & ACTIVE PRE-ORDERS -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+        
+        <!-- Low Stock Alerts Table -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3><i class="fa-solid fa-triangle-exclamation" style="color: var(--danger);"></i> Peringatan Stok Menipis</h3>
+            <span class="badge badge-danger" id="lowStockBadgeCount">0 Item</span>
+          </div>
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>SKU / Varian</th>
+                  <th>Produk</th>
+                  <th>Sisa Stok</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="lowStockTableBody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div id="lowStockEmptyState" style="display: none; padding: 2.5rem 1rem; text-align: center; color: var(--text-muted);">
+            <i class="fa-solid fa-circle-check" style="font-size: 2rem; color: var(--success); margin-bottom: 0.5rem;"></i>
+            <p style="font-size: 0.85rem;">Semua stok dalam kondisi aman di atas ambang minimum.</p>
+          </div>
+        </div>
+
+        <!-- Active Pre-Orders Table -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3><i class="fa-solid fa-clock-rotate-left" style="color: #2563EB;"></i> Pre-Order Sedang Berjalan</h3>
+            <span class="badge badge-info" id="activePoBadgeCount">0 PO</span>
+          </div>
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>No. PO</th>
+                  <th>Customer</th>
+                  <th>Total</th>
+                  <th>Status Bayar</th>
+                  <th>Status Serah</th>
+                </tr>
+              </thead>
+              <tbody id="activePoTableBody">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+          <div id="activePoEmptyState" style="display: none; padding: 2.5rem 1rem; text-align: center; color: var(--text-muted);">
+            <i class="fa-solid fa-box-open" style="font-size: 2rem; color: #CBD5E1; margin-bottom: 0.5rem;"></i>
+            <p style="font-size: 0.85rem;">Tidak ada pesanan Pre-Order yang sedang aktif.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RECENT SALES TRANSACTIONS -->
+      <div class="admin-card" style="margin-top: 1.5rem;">
+        <div class="admin-card-header">
+          <h3><i class="fa-solid fa-clock-rotate-left"></i> Transaksi Penjualan Terbaru</h3>
+          <span style="font-size: 0.78rem; color: var(--text-muted);">Menampilkan 10 transaksi terakhir</span>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="admin-table">
+            <thead>
+              <tr id="recentSalesHeadRow">
+                <th>No. Transaksi</th>
+                <th>Tanggal</th>
+                <th>Customer</th>
+                <th>Channel</th>
+                <th>Metode</th>
+                <th>Total Bayar</th>
+                <!-- Financial columns for Owner only -->
+                <th class="financial-col">HPP (Modal)</th>
+                <th class="financial-col">Laba Kotor</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="recentSalesTableBody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+        <div id="recentSalesEmptyState" style="display: none; padding: 3rem 1rem; text-align: center; color: var(--text-muted);">
+          <i class="fa-solid fa-receipt" style="font-size: 2.5rem; color: #CBD5E1; margin-bottom: 0.5rem;"></i>
+          <p style="font-size: 0.9rem; font-weight: 600;">Belum Ada Transaksi Penjualan</p>
+          <span style="font-size: 0.8rem;">Transaksi yang dicatat melalui kasir akan muncul di sini.</span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kasir & Penjualan (POS) — CrocsCircle.ID</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .pos-grid {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    @media (max-width: 1024px) {
+      .pos-grid { grid-template-columns: 1fr; }
+    }
+    .pos-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 1.25rem;
+    }
+    .variant-search-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 0.6rem;
+      transition: all 0.2s;
+    }
+    .variant-search-item:hover {
+      border-color: var(--accent);
+      background: #F8FAFC;
+    }
+    .ownership-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .ownership-owned {
+      background: #E0F2FE;
+      color: #0369A1;
+      border: 1px solid #BAE6FD;
+    }
+    .ownership-consignment {
+      background: #F3E8FF;
+      color: #7E22CE;
+      border: 1px solid #E9D5FF;
+    }
+    .cart-table th, .cart-table td {
+      padding: 8px 10px;
+      font-size: 0.82rem;
+    }
+    .cart-summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.4rem;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Overlay during Auth Verification -->
+  <div id="authLoadingOverlay" style="position: fixed; inset: 0; background: #F1F5F9; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;">
+    <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: #173B35;"></i>
+    <p style="font-size: 0.9rem; font-weight: 600; color: #475569;">Memverifikasi Sesi Kasir...</p>
+  </div>
+
+  <div class="admin-layout" id="salesMainLayout" style="display: none;">
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <i class="fa-solid fa-circle-notch" style="color: var(--accent); font-size: 1.4rem;"></i>
+        <div>
+          <h2>CrocsCircle<span style="color: var(--accent);">.ID</span></h2>
+          <span style="font-size: 0.72rem; color: #94A3B8;">Management Portal</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <div class="sidebar-item" data-nav="dashboard" onclick="window.location.href='admin.html'">
+          <i class="fa-solid fa-chart-line"></i> Dashboard
+        </div>
+        <div class="sidebar-item" data-nav="products" onclick="window.location.href='products.html'">
+          <i class="fa-solid fa-boxes-stacked"></i> Produk & Stok
+        </div>
+        <div class="sidebar-item active" data-nav="sales">
+          <i class="fa-solid fa-cash-register"></i> Penjualan (POS)
+        </div>
+        <div class="sidebar-item" data-nav="preorder" onclick="window.location.href='preorder.html'">
+          <i class="fa-solid fa-clock-rotate-left"></i> Pre-Order
+        </div>
+        <div class="sidebar-item" data-nav="purchases" onclick="showPlaceholder('Pembelian Stok Supplier (Phase 3D)')">
+          <i class="fa-solid fa-truck-ramp-box"></i> Pembelian Stok
+        </div>
+        <div class="sidebar-item" data-nav="expenses" onclick="showPlaceholder('Pengeluaran Operasional (Phase 3D)')">
+          <i class="fa-solid fa-receipt"></i> Pengeluaran
+        </div>
+        
+        <!-- Owner Only Menus -->
+        <div class="sidebar-item owner-only" data-nav="vendor" onclick="showPlaceholder('Manajemen & Settlement Vendor (Phase 3E)')">
+          <i class="fa-solid fa-handshake"></i> Manajemen Vendor
+        </div>
+        <div class="sidebar-item owner-only" data-nav="finance" onclick="showPlaceholder('Laporan Keuangan & Tutup Buku (Phase 3E)')">
+          <i class="fa-solid fa-scale-balanced"></i> Laporan Keuangan
+        </div>
+        <div class="sidebar-item owner-only" data-nav="settings" onclick="showPlaceholder('Pengaturan Sistem (Phase 3E)')">
+          <i class="fa-solid fa-gear"></i> Pengaturan
+        </div>
+      </nav>
+
+      <div style="padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="index.html" class="sidebar-item" style="color: #8DF7E1; padding: 0.6rem 0.8rem; background: rgba(55,184,157,0.12);">
+          <i class="fa-solid fa-store"></i> Toko Publik
+        </a>
+        <button onclick="handleLogout()" class="sidebar-item" style="background: none; border: none; width: 100%; text-align: left; color: #FCA5A5; cursor: pointer;">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar (Logout)
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1 id="topbarTitle" style="margin: 0;">Terminal Kasir & Penjualan (POS)</h1>
+            <span id="posSessionBadge" style="display: inline-flex; align-items: center; gap: 0.4rem; background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; padding: 0.25rem 0.75rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700;">
+              <i class="fa-solid fa-circle-check" style="color: var(--accent);"></i>
+              <span>Terminal Aktif</span>
+            </span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">Pencatatan transaksi kasir instan, integrasi stok FIFO, lot konsinyasi vendor, dan konversi pesanan WhatsApp.</p>
+        </div>
+        
+        <!-- User Profile Pill -->
+        <div style="display: flex; gap: 1rem; align-items: center; background: white; padding: 0.45rem 1rem; border-radius: var(--radius-full); border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;" id="userAvatar">
+            H
+          </div>
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);" id="userFullName">Memuat...</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);" id="userRoleBadge">Role: OWNER</div>
+          </div>
+          <button onclick="handleLogout()" title="Keluar" style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 4px; margin-left: 0.5rem;">
+            <i class="fa-solid fa-power-off"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- POS Main Grid: Left (Catalog / Quick Lookup) vs Right (Cart & Checkout) -->
+      <div class="pos-grid">
+        
+        <!-- LEFT: Terminal Pencarian Produk & Varian -->
+        <div>
+          <div class="pos-card" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+              <h3 style="font-size: 1rem; font-weight: 700; color: var(--primary); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-magnifying-glass" style="color: var(--accent);"></i> Cari Produk & Varian
+              </h3>
+              <button onclick="openWhatsAppParserModal()" class="admin-btn" style="background: #25D366; color: white; border: none; padding: 0.45rem 0.85rem; font-size: 0.8rem; font-weight: 700; border-radius: 6px; display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                <i class="fa-brands fa-whatsapp" style="font-size: 1rem;"></i> Tarik Pesanan WhatsApp
+              </button>
+            </div>
+
+            <!-- Search input & filter -->
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+              <div style="position: relative; flex: 1;">
+                <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;"></i>
+                <input type="text" id="posSearchInput" placeholder="Ketik nama sepatu, model, warna, size, atau SKU..." style="width: 100%; padding: 0.65rem 0.75rem 0.65rem 2.2rem; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.85rem;" oninput="handlePosSearch(this.value)">
+              </div>
+              <select id="posOwnershipFilter" style="padding: 0.65rem; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.82rem; background: white;" onchange="renderPosVariants()">
+                <option value="ALL">Semua Kepemilikan</option>
+                <option value="OWNED">Stok Sendiri (OWNED)</option>
+                <option value="CONSIGNMENT">Konsinyasi Vendor</option>
+              </select>
+            </div>
+
+            <!-- Variants List Result -->
+            <div id="posVariantsContainer" style="max-height: 520px; overflow-y: auto; padding-right: 4px;">
+              <div style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.8rem; color: var(--accent); margin-bottom: 0.5rem;"></i>
+                <p>Memuat varian produk dan stok aktif...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Keranjang Kasir & Pembayaran -->
+        <div>
+          <div class="pos-card" style="position: sticky; top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+              <h3 style="font-size: 1rem; font-weight: 800; color: var(--primary); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-cart-shopping" style="color: var(--accent);"></i> Keranjang Transaksi
+              </h3>
+              <button onclick="clearPosCart()" style="background: none; border: none; color: var(--danger); font-size: 0.78rem; font-weight: 600; cursor: pointer;">
+                <i class="fa-solid fa-trash-can"></i> Kosongkan
+              </button>
+            </div>
+
+            <!-- Customer & Channel Details -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem;">
+              <div>
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Nama Pelanggan:</label>
+                <input type="text" id="posCustomerName" placeholder="Contoh: Budi Santoso" value="Pelanggan Langsung" style="width: 100%; padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem;">
+              </div>
+              <div>
+                <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Kanal Penjualan:</label>
+                <select id="posSalesChannel" style="width: 100%; padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; background: white;">
+                  <option value="OFFLINE_STORE">Offline Store / Toko</option>
+                  <option value="WHATSAPP">WhatsApp</option>
+                  <option value="INSTAGRAM">Instagram</option>
+                  <option value="TIKTOK_SHOP">TikTok Shop</option>
+                  <option value="TOKOPEDIA">Tokopedia</option>
+                  <option value="SHOPEE">Shopee</option>
+                  <option value="OFFLINE_EVENT">Bazar / Event</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 0.75rem;">
+              <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">Metode Pembayaran:</label>
+              <select id="posPaymentMethod" style="width: 100%; padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem; background: white;">
+                <option value="QRIS">QRIS (BCA / Nobu)</option>
+                <option value="TRANSFER_BCA">Transfer Bank BCA</option>
+                <option value="CASH">Tunai (Cash)</option>
+                <option value="DEBIT_CARD">Kartu Debit</option>
+              </select>
+            </div>
+
+            <!-- Cart Table Items -->
+            <div style="border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1rem; max-height: 220px; overflow-y: auto;">
+              <table style="width: 100%; border-collapse: collapse;" class="cart-table">
+                <thead style="background: #F8FAFC; border-bottom: 1px solid var(--border);">
+                  <tr>
+                    <th style="text-align: left;">Item</th>
+                    <th style="text-align: center; width: 70px;">Qty</th>
+                    <th style="text-align: right; width: 95px;">Harga</th>
+                    <th style="text-align: center; width: 35px;"></th>
+                  </tr>
+                </thead>
+                <tbody id="posCartTableBody">
+                  <tr>
+                    <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem 1rem;">
+                      Keranjang kosong. Pilih varian produk di sebelah kiri.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Calculations Breakdown -->
+            <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+              <div class="cart-summary-row">
+                <span style="color: var(--text-muted);">Subtotal Produk:</span>
+                <span style="font-weight: 700;" id="posSummarySubtotal">Rp0</span>
+              </div>
+              <div class="cart-summary-row">
+                <span style="color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">
+                  Diskon Kasir:
+                  <i class="fa-solid fa-circle-info" title="Diskon ditanggung CrocsCircle dan tidak boleh membuat harga konsinyasi di bawah hak vendor" style="font-size: 0.72rem; color: #94A3B8;"></i>
+                </span>
+                <div style="display: flex; align-items: center; gap: 0.25rem;">
+                  <span style="color: var(--danger); font-size: 0.8rem;">-Rp</span>
+                  <input type="number" id="posDiscountInput" value="0" min="0" step="5000" style="width: 90px; text-align: right; padding: 2px 4px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.82rem; font-weight: 700;" oninput="updateCartCalculations()">
+                </div>
+              </div>
+              <div class="cart-summary-row">
+                <span style="color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">
+                  Titipan Ongkir:
+                  <i class="fa-solid fa-truck" title="Titipan kurir ekspedisi - tidak dihitung sebagai omzet CrocsCircle (Opsi A)" style="font-size: 0.72rem; color: #94A3B8;"></i>
+                </span>
+                <div style="display: flex; align-items: center; gap: 0.25rem;">
+                  <span style="color: var(--text-muted); font-size: 0.8rem;">+Rp</span>
+                  <input type="number" id="posShippingInput" value="0" min="0" step="5000" style="width: 90px; text-align: right; padding: 2px 4px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.82rem; font-weight: 700;" oninput="updateCartCalculations()">
+                </div>
+              </div>
+              <div style="border-top: 1.5px dashed var(--border); margin: 0.5rem 0; padding-top: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 800; color: var(--primary); font-size: 0.95rem;">Total Tagihan:</span>
+                <span style="font-weight: 800; color: var(--accent); font-size: 1.25rem;" id="posSummaryGrandTotal">Rp0</span>
+              </div>
+              <div style="font-size: 0.68rem; color: #64748B; text-align: right; margin-top: 0.2rem;">
+                *Omzet resmi: <span id="posSummaryOmzetPreview" style="font-weight: 700; color: #1E293B;">Rp0</span> (bersih dari diskon & tanpa ongkir)
+              </div>
+            </div>
+
+            <!-- Save Checkout Button -->
+            <button id="posSubmitSaleBtn" class="admin-btn" style="width: 100%; justify-content: center; padding: 0.85rem; font-size: 0.95rem; font-weight: 800; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;" onclick="submitPosTransaction()">
+              <i class="fa-solid fa-cash-register"></i> Simpan Transaksi & Cetak Struk
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SECTION: RIWAYAT TRANSAKSI PENJUALAN -->
+      <div class="pos-card" style="margin-top: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--primary); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-clock-rotate-left" style="color: var(--accent);"></i> Riwayat Transaksi Penjualan
+            </h3>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">Daftar transaksi penjualan kasir, detail item, dan penanganan retur penjualan.</p>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <input type="date" id="historyStartDate" style="padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem;" onchange="loadSalesHistory()">
+            <input type="date" id="historyEndDate" style="padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.8rem;" onchange="loadSalesHistory()">
+            <button onclick="loadSalesHistory()" class="admin-btn" style="padding: 0.4rem 0.75rem; font-size: 0.8rem; background: #F1F5F9; color: var(--text-main); border: 1px solid var(--border); border-radius: 6px; cursor: pointer;">
+              <i class="fa-solid fa-rotate-right"></i> Muat Ulang
+            </button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse;" class="admin-table">
+            <thead>
+              <tr style="background: #F8FAFC; border-bottom: 1.5px solid var(--border);">
+                <th style="padding: 10px; text-align: left; font-size: 0.8rem;">ID Penjualan</th>
+                <th style="padding: 10px; text-align: left; font-size: 0.8rem;">Tanggal</th>
+                <th style="padding: 10px; text-align: left; font-size: 0.8rem;">Pelanggan</th>
+                <th style="padding: 10px; text-align: center; font-size: 0.8rem;">Kanal</th>
+                <th style="padding: 10px; text-align: center; font-size: 0.8rem;">Metode Bayar</th>
+                <th style="padding: 10px; text-align: right; font-size: 0.8rem;">Bruto Diterima</th>
+                <th style="padding: 10px; text-align: right; font-size: 0.8rem;">Omzet Bersih</th>
+                <th class="owner-only-col" style="padding: 10px; text-align: right; font-size: 0.8rem; color: #991B1B;">HPP FIFO</th>
+                <th class="owner-only-col" style="padding: 10px; text-align: right; font-size: 0.8rem; color: #166534;">Laba Kotor</th>
+                <th style="padding: 10px; text-align: center; font-size: 0.8rem;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="salesHistoryTableBody">
+              <tr>
+                <td colspan="10" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                  Memuat riwayat transaksi...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL 1: TARIK PESANAN WHATSAPP -->
+  <div id="waParserModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; width: 90%; max-width: 600px; padding: 1.5rem; box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: #15803D; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-brands fa-whatsapp"></i> Tarik Format Pesanan WhatsApp
+        </h3>
+        <button onclick="closeWhatsAppParserModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+        Tempelkan salinan teks pesan WhatsApp yang dikirimkan pelanggan dari etalase Storefront. Sistem akan mengekstrak data customer dan memvalidasi varian produk langsung ke database.
+      </p>
+
+      <textarea id="waRawTextInput" rows="7" placeholder="Tempelkan pesan WhatsApp di sini... Contoh:&#10;Halo *CrocsCircle.ID*, saya ingin melakukan pemesanan:&#10;1. *Crocs Classic Clog - Bone* [READY STOCK]&#10;   • Varian: Bone | Size: W7 (CRC-CLS-BN-W7)&#10;   • Qty: 1 pcs @ Rp999.000&#10;• Nama: Budi Santoso&#10;• No. WhatsApp: 08123456789" style="width: 100%; padding: 0.75rem; border: 1.5px solid var(--border); border-radius: 8px; font-family: monospace; font-size: 0.8rem; margin-bottom: 1rem;"></textarea>
+
+      <div id="waParserPreview" style="display: none; margin-bottom: 1rem; background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem;">
+        <!-- Filled by JS -->
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button onclick="closeWhatsAppParserModal()" class="admin-btn" style="background: #F1F5F9; color: var(--text-main); border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">Batal</button>
+        <button id="waParseBtn" onclick="processWhatsAppText()" class="admin-btn" style="background: #25D366; color: white; border: none; padding: 0.5rem 1.25rem; font-weight: 700; border-radius: 6px; cursor: pointer;">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Ekstrak & Validasi
+        </button>
+        <button id="waApplyCartBtn" onclick="applyWhatsAppToCart()" class="admin-btn" style="display: none; background: var(--primary); color: white; border: none; padding: 0.5rem 1.25rem; font-weight: 700; border-radius: 6px; cursor: pointer;">
+          <i class="fa-solid fa-cart-plus"></i> Masukkan ke Keranjang Kasir
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: STRUK BELANJA THERMAL INVOICE -->
+  <div id="receiptModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; width: 90%; max-width: 440px; padding: 1.5rem; box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--accent);">TRANSAKSI BERHASIL</span>
+        <button onclick="closeReceiptModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <!-- Thermal Receipt Preview Card -->
+      <div id="thermalReceiptContent" style="background: #FAFBFB; border: 1.5px dashed #CBD5E1; border-radius: 8px; padding: 1.25rem; font-family: monospace; font-size: 0.8rem; color: #1E293B;">
+        <!-- Filled by JS -->
+      </div>
+
+      <div style="display: flex; justify-content: space-between; gap: 0.5rem; margin-top: 1rem;">
+        <button onclick="copyReceiptText()" class="admin-btn" style="flex: 1; background: #F1F5F9; color: var(--text-main); border: 1px solid var(--border); padding: 0.6rem; border-radius: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer;">
+          <i class="fa-regular fa-copy"></i> Salin Struk
+        </button>
+        <button onclick="printReceipt()" class="admin-btn" style="flex: 1; background: var(--primary); color: white; border: none; padding: 0.6rem; border-radius: 6px; font-size: 0.82rem; font-weight: 700; cursor: pointer;">
+          <i class="fa-solid fa-print"></i> Cetak Struk
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: RETUR PENJUALAN -->
+  <div id="returnModal" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 10000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 12px; width: 90%; max-width: 500px; padding: 1.5rem; box-shadow: var(--shadow-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: #DC2626; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-arrow-rotate-left"></i> Retur Transaksi Penjualan
+        </h3>
+        <button onclick="closeReturnModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <div id="returnDetailInfo" style="margin-bottom: 1rem; background: #FEF2F2; border: 1px solid #FECACA; padding: 0.75rem; border-radius: 8px; font-size: 0.82rem; color: #991B1B;">
+        <!-- Filled by JS -->
+      </div>
+
+      <div style="margin-bottom: 0.75rem;">
+        <label style="font-size: 0.8rem; font-weight: 700; display: block; margin-bottom: 0.25rem;">Kuantitas yang Diretur:</label>
+        <input type="number" id="returnQtyInput" min="1" value="1" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; font-weight: 700;">
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.8rem; font-weight: 700; display: block; margin-bottom: 0.25rem;">Alasan Retur (Wajib minimal 5 karakter):</label>
+        <textarea id="returnReasonInput" rows="3" placeholder="Contoh: Ukuran sepatu tidak muat atau salah warna..." style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem;"></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button onclick="closeReturnModal()" class="admin-btn" style="background: #F1F5F9; color: var(--text-main); border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">Batal</button>
+        <button id="submitReturnBtn" onclick="executeReturn()" class="admin-btn" style="background: #DC2626; color: white; border: none; padding: 0.5rem 1.25rem; font-weight: 700; border-radius: 6px; cursor: pointer;">
+          <i class="fa-solid fa-arrow-rotate-left"></i> Konfirmasi Retur
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/sales.js"></script>
+</body>
+</html>
