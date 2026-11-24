@@ -8,6 +8,8 @@ const PROD_STATE = {
   vendors: [],
   currentTab: 'products',
   activeDetailProductId: null,
+  inventoryList: [],
+  activeDetailProduct: null,
   searchTimer: null
 };
 
@@ -219,7 +221,7 @@ window.loadProducts = async function() {
     tbody.innerHTML = data.products.map(p => `
       <tr>
         <td>
-          <img src="${p.image_url || 'https://via.placeholder.com/60?text=Crocs'}" alt="${p.product_name}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
+          <img src="${p.image_url || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'50\' height=\'50\' viewBox=\'0 0 50 50\'><rect width=\'50\' height=\'50\' fill=\'%23E2E8F0\'/><text x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%23173B35\' font-family=\'sans-serif\' font-size=\'9\' font-weight=\'bold\'>CROCS</text></svg>'}" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'50\' height=\'50\' viewBox=\'0 0 50 50\'><rect width=\'50\' height=\'50\' fill=\'%23E2E8F0\'/><text x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%23173B35\' font-family=\'sans-serif\' font-size=\'9\' font-weight=\'bold\'>CROCS</text></svg>';" alt="${p.product_name}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
         </td>
         <td><code>${p.product_id}</code></td>
         <td>
@@ -259,6 +261,13 @@ window.openAddProductModal = function() {
   document.getElementById("modalProductModel").value = "";
   document.getElementById("modalProductDesc").value = "";
   document.getElementById("modalProductImage").value = "";
+  
+  // Set default kategori ke kategori pertama yang ada
+  const catSelect = document.getElementById("modalProductCategory");
+  if (catSelect && catSelect.options.length > 0) {
+    catSelect.selectedIndex = 0;
+  }
+  
   document.getElementById("modalProductActive").checked = true;
   document.getElementById("modalProductPublished").checked = true;
   document.getElementById("productModal").style.display = "flex";
@@ -277,7 +286,17 @@ window.editProduct = async function(productId) {
     document.getElementById("modalProductId").value = p.product_id;
     document.getElementById("modalProductName").value = p.product_name;
     document.getElementById("modalProductModel").value = p.model || "";
-    document.getElementById("modalProductCategory").value = p.category_id || "CLOG";
+    
+    // Pilih kategori yang sesuai
+    const catSelect = document.getElementById("modalProductCategory");
+    if (catSelect) {
+      if (p.category_id) {
+        catSelect.value = p.category_id;
+      } else if (catSelect.options.length > 0) {
+        catSelect.selectedIndex = 0;
+      }
+    }
+
     document.getElementById("modalProductDesc").value = p.description || "";
     document.getElementById("modalProductImage").value = p.image_url || "";
     document.getElementById("modalProductActive").checked = (p.is_active === true || p.is_active === "true");
@@ -340,29 +359,36 @@ window.viewProductDetail = async function(productId) {
 
     const p = data.data.product;
     const variants = data.data.variants || [];
+    PROD_STATE.activeDetailProduct = p;
+    PROD_STATE.activeDetailVariants = variants;
 
     document.getElementById("detailModalProductName").innerText = p.product_name;
     document.getElementById("detailModalCategory").innerText = `ID: ${p.product_id} | Kategori: ${p.category_id}`;
 
     const tbody = document.getElementById("detailModalVariantsBody");
     if (variants.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada varian ukuran untuk produk ini. Klik "Tambah Varian" untuk menambahkan.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Belum ada varian ukuran untuk produk ini. Klik "Tambah Varian" untuk menambahkan.</td></tr>`;
     } else {
-      tbody.innerHTML = variants.map(v => `
+      tbody.innerHTML = variants.map((v, idx) => `
         <tr>
           <td><code>${v.sku}</code></td>
-          <td>${v.color}</td>
-          <td style="text-align: center; font-weight: 700;">${v.size}</td>
+          <td>${v.color || '-'}</td>
+          <td style="text-align: center; font-weight: 700;">${v.size || '-'}</td>
           <td style="text-align: right; font-weight: 700;">${formatRupiah(v.catalog_price)}</td>
           <td style="text-align: center;">
-            <span style="font-weight: 600;">${v.stock.owned_physical}</span> Fisik
-            <span style="font-size: 0.75rem; color: #D97706;">(${v.stock.owned_reserved} PO)</span>
+            <span style="font-weight: 600;">${v.stock ? v.stock.owned_physical : 0}</span> Fisik
+            <span style="font-size: 0.75rem; color: #D97706;">(${v.stock ? v.stock.owned_reserved : 0} PO)</span>
           </td>
           <td style="text-align: center; color: #7C3AED;">
-            <span style="font-weight: 600;">${v.stock.consignment_physical}</span> Fisik
-            <span style="font-size: 0.75rem; color: #D97706;">(${v.stock.consignment_reserved} PO)</span>
+            <span style="font-weight: 600;">${v.stock ? v.stock.consignment_physical : 0}</span> Fisik
+            <span style="font-size: 0.75rem; color: #D97706;">(${v.stock ? v.stock.consignment_reserved : 0} PO)</span>
           </td>
-          <td style="text-align: right; font-weight: 800; color: var(--success);">${v.stock.total_available} pcs</td>
+          <td style="text-align: right; font-weight: 800; color: var(--success);">${v.stock ? v.stock.total_available : 0} pcs</td>
+          <td style="text-align: center; white-space: nowrap;">
+            <button onclick="editVariantByIndex(${idx})" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" title="Edit Varian">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+          </td>
         </tr>
       `).join('');
     }
@@ -377,14 +403,18 @@ window.closeProductDetailModal = function() {
   document.getElementById("productDetailModal").style.display = "none";
 };
 
-// Modal Tambah Varian
+// Modal Tambah / Edit Varian
 window.openAddVariantFromDetail = function() {
   const prodId = PROD_STATE.activeDetailProductId;
   if (!prodId) return;
 
+  const prod = PROD_STATE.activeDetailProduct;
+  const prodName = prod ? prod.product_name : prodId;
+
+  document.getElementById("variantModalTitle").innerText = "Tambah Varian Ukuran & Warna";
   document.getElementById("modalVarProductId").value = prodId;
   document.getElementById("modalVarId").value = "";
-  document.getElementById("variantModalSubtitle").innerText = `Produk ID: ${prodId}`;
+  document.getElementById("variantModalSubtitle").innerText = `Produk: ${prodName} (${prodId})`;
   document.getElementById("modalVarSku").value = "";
   document.getElementById("modalVarColor").value = "";
   document.getElementById("modalVarSize").value = "";
@@ -393,6 +423,46 @@ window.openAddVariantFromDetail = function() {
   document.getElementById("skuErrorText").innerText = "";
 
   document.getElementById("variantModal").style.display = "flex";
+};
+
+window.editVariantByIndex = function(idx) {
+  if (!PROD_STATE.activeDetailVariants || !PROD_STATE.activeDetailVariants[idx]) return;
+  const v = PROD_STATE.activeDetailVariants[idx];
+  const prod = PROD_STATE.activeDetailProduct;
+  const prodName = prod ? prod.product_name : v.product_id;
+
+  document.getElementById("variantModalTitle").innerText = "Edit Varian Produk";
+  document.getElementById("modalVarProductId").value = v.product_id;
+  document.getElementById("modalVarId").value = v.variant_id;
+  document.getElementById("variantModalSubtitle").innerText = `Produk: ${prodName} | SKU: ${v.sku}`;
+  document.getElementById("modalVarSku").value = v.sku;
+  document.getElementById("modalVarColor").value = v.color || "";
+  document.getElementById("modalVarSize").value = v.size || "";
+  document.getElementById("modalVarCatalogPrice").value = v.catalog_price || 0;
+  document.getElementById("modalVarRefHpp").value = v.reference_hpp || 0;
+  document.getElementById("skuErrorText").innerText = "";
+
+  document.getElementById("variantModal").style.display = "flex";
+};
+
+window.generateSuggestedSku = function() {
+  const prod = PROD_STATE.activeDetailProduct;
+  const color = document.getElementById("modalVarColor").value.trim().toUpperCase().replace(/\s+/g, '');
+  const size = document.getElementById("modalVarSize").value.trim().toUpperCase().replace(/\s+/g, '');
+  
+  let prefix = "CRC";
+  let modelCode = "GEN";
+  if (prod && prod.model) {
+    modelCode = prod.model.substring(0, 3).toUpperCase();
+  } else if (prod && prod.product_name) {
+    const words = prod.product_name.split(' ');
+    modelCode = (words[1] || words[0]).substring(0, 3).toUpperCase();
+  }
+
+  const colorCode = color ? color.substring(0, 3) : "CLR";
+  const sizeCode = size || "SZ";
+  const suggested = `${prefix}-${modelCode}-${colorCode}-${sizeCode}`;
+  document.getElementById("modalVarSku").value = suggested;
 };
 
 window.closeVariantModal = function() {
@@ -468,6 +538,7 @@ window.loadInventory = async function() {
 
     const isOwner = (PROD_STATE.user && PROD_STATE.user.role === "OWNER");
     const items = data.inventory || [];
+    PROD_STATE.inventoryList = items;
 
     // Calculate Summary KPIs
     let totalPhys = 0;
@@ -491,7 +562,7 @@ window.loadInventory = async function() {
     document.getElementById("invTotalConsignment").innerText = `${totalCons} pcs`;
 
     const tbody = document.getElementById("inventoryTableBody");
-    tbody.innerHTML = items.map(item => {
+    tbody.innerHTML = items.map((item, idx) => {
       let badgeClass = "badge-success";
       let statusLabel = "In Stock";
       if (item.stock_status === "OUT_OF_STOCK") {
@@ -529,7 +600,7 @@ window.loadInventory = async function() {
             <span class="badge ${badgeClass}">${statusLabel}</span>
           </td>
           <td style="text-align: center;">
-            <button onclick="viewBatchDetail('${item.sku}', ${JSON.stringify(item.fifo_batches).replace(/"/g, '&quot;')}, ${JSON.stringify(item.consignment_lots || []).replace(/"/g, '&quot;')})" class="btn btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" title="Lihat Antrean Batch FIFO & Lot Konsinyasi">
+            <button onclick="viewBatchDetailByIndex(${idx})" class="btn btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" title="Lihat Antrean Batch FIFO & Lot Konsinyasi">
               <i class="fa-solid fa-layer-group"></i> ${item.fifo_batches ? item.fifo_batches.length : 0} Batch | ${item.consignment_lots ? item.consignment_lots.length : 0} Lot
             </button>
           </td>
@@ -547,6 +618,13 @@ window.loadInventory = async function() {
   } catch (err) {
     console.error("Gagal memuat inventaris:", err);
   }
+};
+
+// Helper Batch FIFO by Index
+window.viewBatchDetailByIndex = function(idx) {
+  if (!PROD_STATE.inventoryList || !PROD_STATE.inventoryList[idx]) return;
+  const item = PROD_STATE.inventoryList[idx];
+  viewBatchDetail(item.sku, item.fifo_batches, item.consignment_lots);
 };
 
 // Modal Batch FIFO & Lot Konsinyasi

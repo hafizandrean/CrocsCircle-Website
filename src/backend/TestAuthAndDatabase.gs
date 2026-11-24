@@ -1,11 +1,171 @@
 /**
- * CROCSCIRCLE.ID — APPS SCRIPT IN-SHEET TEST RUNNER
- * Version: 1.2.0 (Phase 2A, 2B, 2C & 2D Test Runner)
+ * CROCSCIRCLE.ID — APPS SCRIPT IN-SHEET TEST RUNNER & SANDBOX INITIALIZER
+ * Version: 1.2.0 (Phase 2A, 2B, 2C, 2D & 3E Test Runner)
  * 
  * Fungsi ini dapat dijalankan langsung di Google Apps Script editor
  * untuk menguji DatabaseHelper, InitDatabase, AuthService, InventoryService,
  * SalesService, POService, dan VendorService pada spreadsheet Google Sheets nyata.
  */
+
+/**
+ * Helper 1-Klik untuk Inisialisasi Database Sandbox & Akun Owner
+ * Pilih fungsi 'setupSandboxDatabaseAndOwner' di toolbar editor GAS, lalu klik 'Jalankan' ('Run').
+ */
+function setupSandboxDatabaseAndOwner() {
+  Logger.log("=== MEMULAI INISIALISASI DATABASE SANDBOX ===");
+  const initRes = initializeCrocsCircleDatabase();
+  Logger.log("Hasil Init Database: " + JSON.stringify(initRes));
+
+  Logger.log("=== MEMBUAT AKUN OWNER SANDBOX (hafiz & owner_tester) ===");
+  try {
+    AuthService.setupOwnerAccount("hafiz", "Hafiz Owner", "HafizOwner2026!");
+    Logger.log("[SUKSES] Akun 'hafiz' berhasil didaftarkan di sheet USERS.");
+  } catch (e) {
+    Logger.log("[INFO] Akun 'hafiz': " + e.message);
+  }
+
+  try {
+    AuthService.setupOwnerAccount("owner_tester", "Owner Tester", "PassTester2026!");
+    Logger.log("[SUKSES] Akun 'owner_tester' berhasil didaftarkan di sheet USERS.");
+  } catch (e) {
+    Logger.log("[INFO] Akun 'owner_tester': " + e.message);
+  }
+
+  Logger.log("=== SETUP SANDBOX SELESAI ===");
+  return { success: true, message: "Sandbox Database & Owner ready!" };
+}
+
+/**
+ * Helper Dry-Run Pembersihan Data Pengujian Phase 3E.3
+ * Menampilkan daftar record uji yang ditemukan tanpa melakukan penghapusan fisik.
+ * Pilih fungsi ini di toolbar editor GAS lalu klik 'Jalankan' ('Run').
+ */
+function dryRunCleanupPhase3E3TestData() {
+  return cleanupPhase3E3TestData(true);
+}
+
+/**
+ * Helper Pembersihan Data Pengujian Phase 3E.3 (Tahap B)
+ * Target HANYA record uji ber-ID spesifik:
+ * - Master Produk: CAT-20261119-357, CAT-20261119-639
+ * - Varian & SKU: SKU-LIVE-TST-979427 (atau berinduk ke produk uji di atas)
+ * Menelusuri seluruh relasi turunan (VARIAN_PRODUK, STOK, BATCH_FIFO, MUTASI_STOK).
+ * TIDAK PERNAH menghapus akun USERS, KATEGORI master, VENDORS, konfigurasi, maupun struktur 26 sheet.
+ *
+ * @param {boolean} [isDryRun=false] - Jika true, hanya mendata record tanpa mutasi fisik.
+ */
+function cleanupPhase3E3TestData(isDryRun) {
+  const dryRun = (isDryRun === true);
+  Logger.log("=== " + (dryRun ? "[DRY-RUN] " : "") + "AUDIT & CLEANUP DATA PENGUJIAN PHASE 3E.3 ===");
+  
+  const testProdIds = ["CAT-20261119-357", "CAT-20261119-639"];
+  const testSkus = ["SKU-LIVE-TST-979427"];
+  
+  const identifiedRecords = {
+    master_products: [],
+    variants: [],
+    stocks: [],
+    batches: [],
+    mutations: []
+  };
+
+  // 1. Temukan Master Produk Uji
+  testProdIds.forEach(function(pId) {
+    const p = DatabaseHelper.getRowByPk("MASTER_PRODUK", "product_id", pId);
+    if (p) {
+      identifiedRecords.master_products.push(p);
+      Logger.log("Ditemukan Master Produk Uji: " + p.product_id + " (" + (p.product_name || "") + ")");
+    }
+  });
+
+  // 2. Temukan Varian Produk Uji
+  const variants = DatabaseHelper.getAllRows("VARIAN_PRODUK", function(v) {
+    return testSkus.indexOf(v.sku) !== -1 || testProdIds.indexOf(v.product_id) !== -1;
+  });
+  const variantIds = [];
+  variants.forEach(function(v) {
+    identifiedRecords.variants.push(v);
+    variantIds.push(v.variant_id);
+    Logger.log("Ditemukan Varian Uji: " + v.variant_id + " | SKU: " + v.sku + " | Induk: " + v.product_id);
+  });
+
+  // 3. Temukan Relasi Turunan (STOK, BATCH_FIFO, MUTASI_STOK)
+  if (variantIds.length > 0) {
+    try {
+      const stocks = DatabaseHelper.getAllRows("STOK", function(s) {
+        return variantIds.indexOf(s.variant_id) !== -1;
+      });
+      identifiedRecords.stocks = stocks;
+    } catch(e) {}
+
+    try {
+      const batches = DatabaseHelper.getAllRows("BATCH_FIFO", function(b) {
+        return variantIds.indexOf(b.variant_id) !== -1;
+      });
+      identifiedRecords.batches = batches;
+    } catch(e) {}
+
+    try {
+      const mutations = DatabaseHelper.getAllRows("MUTASI_STOK", function(m) {
+        return variantIds.indexOf(m.variant_id) !== -1;
+      });
+      identifiedRecords.mutations = mutations;
+    } catch(e) {}
+  }
+
+  Logger.log("--- REKAPITULASI RECORD UJI YANG TERDETEKSI ---");
+  Logger.log("Master Produk: " + identifiedRecords.master_products.length + " baris");
+  Logger.log("Varian Produk: " + identifiedRecords.variants.length + " baris");
+  Logger.log("Stok: " + identifiedRecords.stocks.length + " baris");
+  Logger.log("Batch FIFO: " + identifiedRecords.batches.length + " baris");
+  Logger.log("Mutasi Stok: " + identifiedRecords.mutations.length + " baris");
+
+  if (dryRun) {
+    Logger.log("[DRY-RUN] Mode simulasi selesai. Tidak ada baris yang dihapus dari Google Sheets.");
+    return {
+      success: true,
+      dryRun: true,
+      message: "Dry-run berhasil. Tidak ada data yang dihapus dari spreadsheet.",
+      identifiedRecords: identifiedRecords
+    };
+  }
+
+  // EKSEKUSI PENGHAPUSAN FISIK (Hanya jika bukan dryRun)
+  // A. Hapus Mutasi Stok & Batch jika ada
+  identifiedRecords.mutations.forEach(function(m) {
+    try { DatabaseHelper.deleteRowByPk("MUTASI_STOK", "mutation_id", m.mutation_id); } catch(e) {}
+  });
+  identifiedRecords.batches.forEach(function(b) {
+    try { DatabaseHelper.deleteRowByPk("BATCH_FIFO", "batch_id", b.batch_id); } catch(e) {}
+  });
+  identifiedRecords.stocks.forEach(function(s) {
+    try { DatabaseHelper.deleteRowByPk("STOK", "variant_id", s.variant_id); } catch(e) {}
+  });
+
+  // B. Hapus Varian Produk
+  identifiedRecords.variants.forEach(function(v) {
+    try { DatabaseHelper.deleteRowByPk("VARIAN_PRODUK", "variant_id", v.variant_id); } catch(e) {}
+  });
+
+  // C. Hapus Master Produk
+  identifiedRecords.master_products.forEach(function(p) {
+    try { DatabaseHelper.deleteRowByPk("MASTER_PRODUK", "product_id", p.product_id); } catch(e) {}
+  });
+
+  Logger.log("=== EKSEKUSI CLEANUP SELESAI. Seluruh record uji berhasil dihapus ===");
+  return {
+    success: true,
+    dryRun: false,
+    message: "Data uji berhasil dibersihkan dari spreadsheet Sandbox.",
+    deletedCounts: {
+      master_products: identifiedRecords.master_products.length,
+      variants: identifiedRecords.variants.length,
+      stocks: identifiedRecords.stocks.length,
+      batches: identifiedRecords.batches.length,
+      mutations: identifiedRecords.mutations.length
+    }
+  };
+}
 
 function runCrocsCircleTestSuite() {
   Logger.log("=== MEMULAI TEST SUITE CROCSCIRCLE (PHASE 2A, 2B, 2C, 2D) ===");

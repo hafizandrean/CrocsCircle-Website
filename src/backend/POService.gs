@@ -221,11 +221,27 @@ const POService = (function() {
       // 3. Tentukan status pembayaran baru dan tanggal pelunasan (settlement_date)
       let newPaymentStatus = "UNPAID";
       let settlementDate = poRow.settlement_date || "";
+      let allocatedHpp = Number(poRow.allocated_hpp) || 0;
+      let hppStatus = poRow.hpp_status || "PENDING_ALLOCATION";
 
       if (totalPaid >= totalOrder) {
         newPaymentStatus = "PAID";
         // SETTLEMENT_DATE: Pengakuan omzet baku pada tanggal pelunasan penuh!
         settlementDate = paymentDate;
+
+        // Jika allocated_hpp belum ada, coba cari snapshot HPP dari batch persediaan aktif
+        if (allocatedHpp <= 0) {
+          try {
+            const activeBatches = DatabaseHelper.getAllRows("DETAIL_PEMBELIAN", function(b) {
+              return String(b.variant_id) === String(poRow.variant_id) && (Number(b.remaining_qty) > 0 || Number(b.quantity) > 0);
+            });
+            if (activeBatches.length > 0) {
+              const hppUnit = parseFloat(activeBatches[0].unit_cost) || 0;
+              allocatedHpp = hppUnit * (parseInt(poRow.quantity, 10) || 1);
+              hppStatus = "RECOGNIZED";
+            }
+          } catch (e) {}
+        }
       } else if (totalPaid > 0) {
         newPaymentStatus = "PARTIAL";
         settlementDate = ""; // Belum diakui sebagai omzet
@@ -234,7 +250,9 @@ const POService = (function() {
       // 4. Update tabel PRE_ORDER
       DatabaseHelper.updateRowByPk("PRE_ORDER", "po_id", poId, {
         payment_status: newPaymentStatus,
-        settlement_date: settlementDate
+        settlement_date: settlementDate,
+        allocated_hpp: allocatedHpp,
+        hpp_status: hppStatus
       });
 
       DatabaseHelper.logActivity(
@@ -255,7 +273,7 @@ const POService = (function() {
         remaining_balance: remainingBalance,
         payment_status: newPaymentStatus,
         new_status: newPaymentStatus,
-        settlement_date: settlementDate
+        settlement_date: settlementDate ? (settlementDate instanceof Date ? Utilities.formatDate(settlementDate, "GMT+7", "yyyy-MM-dd") : String(settlementDate).substring(0, 10)) : ""
       };
     });
   }
@@ -315,8 +333,27 @@ const POService = (function() {
     const category = stockCategory || "OWNED";
     const res = InventoryService.reserveStock(poId, po.variant_id, po.quantity, category, createdBy);
 
-    DatabaseHelper.logActivity(createdBy, "ALLOCATE_PO_STOCK", "PRE_ORDER", poId, "Stok " + po.quantity + " unit berhasil di-booking untuk PO " + poId);
-    return res;
+    // Cari snapshot biaya perolehan HPP untuk varian ini dari batch persediaan aktif
+    let allocatedHpp = Number(po.allocated_hpp) || 0;
+    let hppStatus = po.hpp_status || "PENDING_ALLOCATION";
+    try {
+      const activeBatches = DatabaseHelper.getAllRows("DETAIL_PEMBELIAN", function(b) {
+        return String(b.variant_id) === String(po.variant_id) && (Number(b.remaining_qty) > 0 || Number(b.quantity) > 0);
+      });
+      if (activeBatches.length > 0) {
+        const hppUnit = parseFloat(activeBatches[0].unit_cost) || 0;
+        allocatedHpp = hppUnit * (parseInt(po.quantity, 10) || 1);
+        hppStatus = "RECOGNIZED";
+      }
+    } catch (e) {}
+
+    DatabaseHelper.updateRowByPk("PRE_ORDER", "po_id", poId, {
+      allocated_hpp: allocatedHpp,
+      hpp_status: hppStatus
+    });
+
+    DatabaseHelper.logActivity(createdBy, "ALLOCATE_PO_STOCK", "PRE_ORDER", poId, "Stok " + po.quantity + " unit berhasil di-booking untuk PO " + poId + (allocatedHpp > 0 ? " (HPP: Rp" + allocatedHpp + ")" : ""));
+    return Object.assign({}, res, { allocated_hpp: allocatedHpp, hpp_status: hppStatus });
   }
 
   /**
@@ -626,11 +663,26 @@ const POService = (function() {
     });
 
     const totalRecognizedOmzet = paidPOs.reduce((sum, po) => sum + (Number(po.total_order) || 0), 0);
+    let totalRecognizedHpp = 0;
+    const pendingHppPOs = [];
+
+    paidPOs.forEach(po => {
+      const hppVal = Number(po.allocated_hpp) || 0;
+      if (hppVal > 0) {
+        totalRecognizedHpp += hppVal;
+      } else {
+        pendingHppPOs.push(po);
+      }
+    });
+
     return {
       month: targetMonth,
       year: targetYear,
       count: paidPOs.length,
       totalOmzet: totalRecognizedOmzet,
+      totalHpp: totalRecognizedHpp,
+      pendingHppCount: pendingHppPOs.length,
+      pendingHppRecords: pendingHppPOs,
       records: paidPOs
     };
   }

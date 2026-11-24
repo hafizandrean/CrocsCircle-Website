@@ -13,7 +13,7 @@
  * 3. Tidak ada data dummy: Jika belum ada transaksi/stok, mengembalikan empty state yang bersih.
  */
 
-const AdminController = (function() {
+var AdminController = (function() {
 
   /**
    * Endpoint Login Admin

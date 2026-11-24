@@ -394,6 +394,10 @@ const VendorService = (function() {
       return {
         success: true,
         settlementId: settlementId,
+        settlement_id: settlementId,
+        total_gross_payable: totalGrossPayable,
+        total_claims_deducted: totalClaimsDeducted,
+        total_net_payout: totalNetPayout,
         header: settlementHeader,
         details: detailRecords,
         settled_items_count: itemsToPay.length,
@@ -461,6 +465,7 @@ const VendorService = (function() {
     getVendorNetPayableSummary: getVendorNetPayableSummary,
     executeSettlement: executeSettlement,
     getVendorSettlementHistory: getVendorSettlementHistory,
-    getVendorDashboardSummary: getVendorDashboardSummary
+    getVendorDashboardSummary: getVendorDashboardSummary,
+    getVendorReconciliationReport: getVendorDashboardSummary
   };
 })();

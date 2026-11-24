@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengeluaran Operasional — CrocsCircle.ID</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .exp-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .exp-metric-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .exp-metric-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+    }
+    .accounting-rule-box {
+      background: #FFF7ED;
+      border: 1px solid #FED7AA;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.8rem;
+      color: #7C2D12;
+      margin-bottom: 1.25rem;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="authLoadingOverlay" style="position: fixed; inset: 0; background: #F1F5F9; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;">
+    <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: #173B35;"></i>
+    <p style="font-size: 0.9rem; font-weight: 600; color: #475569;">Memverifikasi Sesi Portal Pengeluaran...</p>
+  </div>
+
+  <div class="admin-layout" id="mainLayout" style="display: none;">
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <i class="fa-solid fa-circle-notch" style="color: var(--accent); font-size: 1.4rem;"></i>
+        <div>
+          <h2>CrocsCircle<span style="color: var(--accent);">.ID</span></h2>
+          <span style="font-size: 0.72rem; color: #94A3B8;">Management Portal</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <div class="sidebar-item" data-nav="dashboard" onclick="window.location.href='admin.html'">
+          <i class="fa-solid fa-chart-line"></i> Dashboard
+        </div>
+        <div class="sidebar-item" data-nav="products" onclick="window.location.href='products.html'">
+          <i class="fa-solid fa-boxes-stacked"></i> Produk &amp; Stok
+        </div>
+        <div class="sidebar-item" data-nav="sales" onclick="window.location.href='sales.html'">
+          <i class="fa-solid fa-cash-register"></i> Penjualan (POS)
+        </div>
+        <div class="sidebar-item" data-nav="preorder" onclick="window.location.href='preorder.html'">
+          <i class="fa-solid fa-clock-rotate-left"></i> Pre-Order
+        </div>
+        <div class="sidebar-item" data-nav="purchases" onclick="window.location.href='purchases.html'">
+          <i class="fa-solid fa-truck-ramp-box"></i> Pembelian Stok
+        </div>
+        <div class="sidebar-item active" data-nav="expenses">
+          <i class="fa-solid fa-receipt"></i> Pengeluaran
+        </div>
+
+        <!-- Owner Only -->
+        <div class="sidebar-item owner-only" data-nav="finance" onclick="window.location.href='finance.html'">
+          <i class="fa-solid fa-scale-balanced"></i> Laporan Keuangan
+        </div>
+        <div class="sidebar-item owner-only" data-nav="settings" onclick="window.location.href='settings.html'">
+          <i class="fa-solid fa-gear"></i> Pengaturan
+        </div>
+      </nav>
+
+      <div style="padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="index.html" class="sidebar-item" style="color: #8DF7E1; padding: 0.6rem 0.8rem; background: rgba(55,184,157,0.12);">
+          <i class="fa-solid fa-store"></i> Toko Publik
+        </a>
+        <button onclick="showLogoutModal()" class="sidebar-item" style="background: none; border: none; width: 100%; text-align: left; color: #FCA5A5; cursor: pointer;">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar (Logout)
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1 style="margin: 0;">Pengeluaran Operasional</h1>
+            <span style="display: inline-flex; align-items: center; gap: 0.4rem; background: #FAF5FF; border: 1px solid #E9D5FF; color: #7E22CE; padding: 0.25rem 0.75rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700;">
+              <i class="fa-solid fa-coins"></i>
+              <span>Beban Usaha &amp; Operasional</span>
+            </span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">Catat dan pantau seluruh beban operasional usaha harian. Pembelian stok supplier dicatat terpisah di menu Pembelian Stok.</p>
+        </div>
+
+        <div style="display: flex; gap: 1rem; align-items: center; background: white; padding: 0.45rem 1rem; border-radius: var(--radius-full); border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;" id="userAvatar">H</div>
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);" id="userFullName">Memuat...</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);" id="userRoleBadge">Role: —</div>
+          </div>
+          <button onclick="showLogoutModal()" title="Keluar" style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 4px; margin-left: 0.5rem;">
+            <i class="fa-solid fa-power-off"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Metrics Row -->
+      <div class="exp-metrics-grid">
+        <div class="exp-metric-card">
+          <div class="exp-metric-icon" style="background: #F3E8FF; color: #7E22CE;">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">TOTAL TRANSAKSI</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #7E22CE;" id="metricExpCount">0</div>
+          </div>
+        </div>
+        <div class="exp-metric-card">
+          <div class="exp-metric-icon" style="background: #FEE2E2; color: #DC2626;">
+            <i class="fa-solid fa-wallet"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">TOTAL PENGELUARAN (TERFILTER)</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #DC2626;" id="metricExpTotal">Rp 0</div>
+          </div>
+        </div>
+        <div class="exp-metric-card">
+          <div class="exp-metric-icon" style="background: #E0E7FF; color: #4338CA;">
+            <i class="fa-solid fa-calendar-check"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">PERIODE FILTER</div>
+            <div style="font-size: 1rem; font-weight: 700; color: #1E1B4B;" id="metricExpPeriod">Bulan Ini</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="expAlertBox" style="display:none;" class="alert-box"></div>
+
+      <!-- Accounting Rule Notice -->
+      <div class="accounting-rule-box">
+        <i class="fa-solid fa-triangle-exclamation" style="margin-right: 0.5rem;"></i>
+        <strong>Aturan Akuntansi:</strong> Pembelian stok supplier atau pelunasan hutang vendor <u>tidak boleh</u> dicatat di sini. Pengadaan barang dicatat di menu <strong>Pembelian Stok</strong>, dan pelunasan konsinyasi dilakukan di tab <strong>Rekonsiliasi Vendor</strong> (Laporan Keuangan).
+      </div>
+
+      <!-- Form Section: Catat Pengeluaran -->
+      <div class="form-section">
+        <h3><i class="fa-solid fa-circle-plus"></i> Catat Pengeluaran Operasional Baru</h3>
+
+        <div class="form-row">
+          <div>
+            <label class="form-label">Kategori Pengeluaran *</label>
+            <select id="expCategory" class="form-input" onchange="checkForbiddenCategory()">
+              <option value="">— Pilih Kategori —</option>
+              <option value="PACKING">Packing &amp; Kemasan</option>
+              <option value="TRANSPORT">Transport &amp; Ongkir Ekspedisi</option>
+              <option value="SEWA">Sewa Tempat / Gudang</option>
+              <option value="LISTRIK">Listrik &amp; Air</option>
+              <option value="INTERNET">Internet &amp; Telepon</option>
+              <option value="GAJI">Gaji &amp; Honorarium</option>
+              <option value="MARKETING">Marketing &amp; Iklan Promosi</option>
+              <option value="ALAT_TULIS">Alat Tulis &amp; Supplies Kantor</option>
+              <option value="MAINTENANCE">Perawatan &amp; Perbaikan</option>
+              <option value="LAIN_LAIN">Lain-lain</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Tanggal Pengeluaran *</label>
+            <input type="date" id="expDate" class="form-input">
+          </div>
+        </div>
+
+        <div id="forbiddenCategoryWarning" style="display:none;" class="alert-box alert-error">
+          <i class="fa-solid fa-ban"></i>
+          <span>Kategori ini DILARANG masuk pengeluaran operasional. Gunakan menu Pembelian Stok untuk mencatat pengadaan barang atau tab Rekonsiliasi Vendor di Laporan Keuangan untuk settlement.</span>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label class="form-label">Aktivitas / Sub-Kategori *</label>
+            <input type="text" id="expActivity" class="form-input" placeholder="Contoh: Beli lakban & kardus 50 pcs">
+          </div>
+          <div>
+            <label class="form-label">Jumlah (Rp) *</label>
+            <input type="number" id="expAmount" class="form-input" placeholder="0" min="1">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label class="form-label">Metode Pembayaran *</label>
+            <select id="expPaymentMethod" class="form-input">
+              <option value="CASH">Tunai (Cash Toko)</option>
+              <option value="TRANSFER_BCA">Transfer BCA</option>
+              <option value="TRANSFER_BRI">Transfer BRI</option>
+              <option value="TRANSFER_MANDIRI">Transfer Mandiri</option>
+              <option value="QRIS">QRIS</option>
+              <option value="DEBIT">Kartu Debit</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Dibayar Oleh</label>
+            <input type="text" id="expPaidBy" class="form-input" placeholder="Nama staf / kasir / owner">
+          </div>
+        </div>
+
+        <div class="form-row-full">
+          <label class="form-label">Deskripsi Lengkap</label>
+          <input type="text" id="expDescription" class="form-input" placeholder="Deskripsi singkat keperluan pengeluaran">
+        </div>
+        <div class="form-row-full">
+          <label class="form-label">Catatan Tambahan (Opsional)</label>
+          <input type="text" id="expNotes" class="form-input" placeholder="Nomor nota, referensi transfer, atau catatan internal">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
+          <button class="submit-btn" id="createExpenseBtn" onclick="submitCreateExpense()" style="background: #7E22CE;">
+            <i class="fa-solid fa-floppy-disk"></i> Simpan Pengeluaran
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter & List: Pengeluaran -->
+      <div class="form-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <h3 style="margin: 0;"><i class="fa-solid fa-list"></i> Riwayat Pengeluaran Operasional</h3>
+          <button onclick="loadExpenseList()" style="background: #7E22CE; color: white; border: none; border-radius: 6px; padding: 0.4rem 0.9rem; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+            <i class="fa-solid fa-rotate"></i> Muat Ulang
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+          <select id="filterExpMonth" class="form-input" style="width: auto; padding: 0.4rem 0.6rem;" onchange="loadExpenseList()">
+            <option value="">Semua Bulan</option>
+            <option value="1">Januari</option><option value="2">Februari</option>
+            <option value="3">Maret</option><option value="4">April</option>
+            <option value="5">Mei</option><option value="6">Juni</option>
+            <option value="7">Juli</option><option value="8">Agustus</option>
+            <option value="9">September</option><option value="10">Oktober</option>
+            <option value="11">November</option><option value="12">Desember</option>
+          </select>
+          <select id="filterExpYear" class="form-input" style="width: auto; padding: 0.4rem 0.6rem;" onchange="loadExpenseList()">
+            <option value="">Semua Tahun</option>
+            <option value="2026">2026</option>
+            <option value="2027">2027</option>
+          </select>
+          <select id="filterExpCategory" class="form-input" style="width: auto; padding: 0.4rem 0.6rem;" onchange="loadExpenseList()">
+            <option value="">Semua Kategori</option>
+            <option value="PACKING">Packing &amp; Kemasan</option>
+            <option value="TRANSPORT">Transport &amp; Ongkir</option>
+            <option value="SEWA">Sewa Tempat</option>
+            <option value="LISTRIK">Listrik &amp; Air</option>
+            <option value="INTERNET">Internet</option>
+            <option value="GAJI">Gaji &amp; Honor</option>
+            <option value="MARKETING">Marketing &amp; Iklan</option>
+            <option value="ALAT_TULIS">Alat Tulis</option>
+            <option value="MAINTENANCE">Perawatan</option>
+            <option value="LAIN_LAIN">Lain-lain</option>
+          </select>
+        </div>
+
+        <div id="expTotalRow" style="display:none; background: #F0FDF4; border: 1px solid #A7F3D0; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 0.75rem; font-size: 0.85rem; color: #065F46; font-weight: 700;">
+          Total Pengeluaran Terfilter: <span id="expTotalAmount">Rp 0</span>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="data-table items-table">
+            <thead>
+              <tr>
+                <th>ID Pengeluaran</th>
+                <th>Tanggal</th>
+                <th>Kategori</th>
+                <th>Aktivitas</th>
+                <th>Jumlah</th>
+                <th>Metode Bayar</th>
+                <th>Dibayar Oleh</th>
+                <th>Deskripsi &amp; Catatan</th>
+              </tr>
+            </thead>
+            <tbody id="expensesTableBody">
+              <tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2rem;">Memuat data pengeluaran...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Logout Confirmation Modal -->
+  <div id="logoutModal" class="modal-backdrop" style="display: none;">
+    <div style="background: white; border-radius: 12px; width: 90%; max-width: 400px; padding: 1.5rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);">
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: #FEE2E2; color: #DC2626; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </div>
+        <div>
+          <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">Konfirmasi Keluar</h3>
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Sesi portal admin Anda akan diakhiri.</p>
+        </div>
+      </div>
+      <p style="font-size: 0.85rem; color: #475569; margin-bottom: 1.25rem;">Apakah Anda yakin ingin keluar dari Portal Manajemen CrocsCircle.ID?</p>
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button onclick="closeLogoutModal()" style="background: #F1F5F9; border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; color: #475569;">
+          Batal
+        </button>
+        <button onclick="confirmLogout()" style="background: #DC2626; color: white; border: none; border-radius: 6px; padding: 0.5rem 1.25rem; font-weight: 600; cursor: pointer;">
+          Ya, Keluar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/expenses.js"></script>
+</body>
+</html>

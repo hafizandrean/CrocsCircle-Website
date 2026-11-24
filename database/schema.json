@@ -309,8 +309,27 @@
         "remaining_qty",
         "base_unit_cost",
         "vendor_incentive",
+        "shipping_cost_allocation",
         "unit_cost",
         "subtotal"
+      ]
+    },
+    {
+      "sheet_name": "PEMBAYARAN_PEMBELIAN",
+      "primary_key": "payment_id",
+      "foreign_keys": {
+        "purchase_id": "PEMBELIAN_STOK.purchase_id"
+      },
+      "columns": [
+        "payment_id",
+        "purchase_id",
+        "payment_date",
+        "amount",
+        "payment_method",
+        "idempotency_key",
+        "notes",
+        "created_by",
+        "created_at"
       ]
     },
     {

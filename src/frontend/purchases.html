@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pembelian Stok Supplier — CrocsCircle.ID</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .pur-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .pur-metric-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.15rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .pur-metric-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .status-unreceived { background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; }
+    .status-partial { background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A; }
+    .status-fully { background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0; }
+    .status-unpaid { background: #FEE2E2; color: #DC2626; border: 1px solid #FECACA; }
+    .status-paid { background: #DCFCE7; color: #15803D; border: 1px solid #BBF7D0; }
+
+    .accounting-rule-box {
+      background: #FFF7ED;
+      border: 1px solid #FED7AA;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.8rem;
+      color: #7C2D12;
+      margin-bottom: 1.25rem;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+
+    .item-row-container {
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+    .item-row-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .remove-item-btn {
+      background: none;
+      border: none;
+      color: var(--danger);
+      font-size: 0.78rem;
+      cursor: pointer;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .add-item-btn {
+      background: #E0F2FE;
+      color: #0369A1;
+      border: 1px dashed #7DD3FC;
+      border-radius: 6px;
+      padding: 0.45rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-top: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="authLoadingOverlay" style="position: fixed; inset: 0; background: #F1F5F9; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;">
+    <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: #173B35;"></i>
+    <p style="font-size: 0.9rem; font-weight: 600; color: #475569;">Memverifikasi Sesi Portal Pembelian...</p>
+  </div>
+
+  <div class="admin-layout" id="mainLayout" style="display: none;">
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <i class="fa-solid fa-circle-notch" style="color: var(--accent); font-size: 1.4rem;"></i>
+        <div>
+          <h2>CrocsCircle<span style="color: var(--accent);">.ID</span></h2>
+          <span style="font-size: 0.72rem; color: #94A3B8;">Management Portal</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <div class="sidebar-item" data-nav="dashboard" onclick="window.location.href='admin.html'">
+          <i class="fa-solid fa-chart-line"></i> Dashboard
+        </div>
+        <div class="sidebar-item" data-nav="products" onclick="window.location.href='products.html'">
+          <i class="fa-solid fa-boxes-stacked"></i> Produk &amp; Stok
+        </div>
+        <div class="sidebar-item" data-nav="sales" onclick="window.location.href='sales.html'">
+          <i class="fa-solid fa-cash-register"></i> Penjualan (POS)
+        </div>
+        <div class="sidebar-item" data-nav="preorder" onclick="window.location.href='preorder.html'">
+          <i class="fa-solid fa-clock-rotate-left"></i> Pre-Order
+        </div>
+        <div class="sidebar-item active" data-nav="purchases">
+          <i class="fa-solid fa-truck-ramp-box"></i> Pembelian Stok
+        </div>
+        <div class="sidebar-item" data-nav="expenses" onclick="window.location.href='expenses.html'">
+          <i class="fa-solid fa-receipt"></i> Pengeluaran
+        </div>
+
+        <!-- Owner Only -->
+        <div class="sidebar-item owner-only" data-nav="finance" onclick="window.location.href='finance.html'">
+          <i class="fa-solid fa-scale-balanced"></i> Laporan Keuangan
+        </div>
+        <div class="sidebar-item owner-only" data-nav="settings" onclick="window.location.href='settings.html'">
+          <i class="fa-solid fa-gear"></i> Pengaturan
+        </div>
+      </nav>
+
+      <div style="padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="index.html" class="sidebar-item" style="color: #8DF7E1; padding: 0.6rem 0.8rem; background: rgba(55,184,157,0.12);">
+          <i class="fa-solid fa-store"></i> Toko Publik
+        </a>
+        <button onclick="showLogoutModal()" class="sidebar-item" style="background: none; border: none; width: 100%; text-align: left; color: #FCA5A5; cursor: pointer;">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar (Logout)
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1 style="margin: 0;">Pembelian Stok Supplier</h1>
+            <span style="display: inline-flex; align-items: center; gap: 0.4rem; background: #FFF7ED; border: 1px solid #FED7AA; color: #9A3412; padding: 0.25rem 0.75rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700;">
+              <i class="fa-solid fa-shield-halved" style="color: var(--accent);"></i>
+              <span>Stok Aset Persediaan</span>
+            </span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">Kelola faktur pembelian stok dari supplier, pencatatan pembayaran faktur, dan penerimaan fisik barang (partial/penuh).</p>
+        </div>
+
+        <div style="display: flex; gap: 1rem; align-items: center; background: white; padding: 0.45rem 1rem; border-radius: var(--radius-full); border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;" id="userAvatar">H</div>
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);" id="userFullName">Memuat...</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);" id="userRoleBadge">Role: —</div>
+          </div>
+          <button onclick="showLogoutModal()" title="Keluar" style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 4px; margin-left: 0.5rem;">
+            <i class="fa-solid fa-power-off"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Metrics Row -->
+      <div class="pur-metrics-grid">
+        <div class="pur-metric-card">
+          <div class="pur-metric-icon" style="background: #F1F5F9; color: #475569;">
+            <i class="fa-solid fa-file-invoice-dollar"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">TOTAL FAKTUR</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: var(--primary);" id="metricTotalInvoices">0</div>
+          </div>
+        </div>
+        <div class="pur-metric-card">
+          <div class="pur-metric-icon" style="background: #FEE2E2; color: #DC2626;">
+            <i class="fa-solid fa-hand-holding-dollar"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">TAGIHAN BELUM BAYAR</div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: #DC2626;" id="metricRemainingBill">Rp 0</div>
+          </div>
+        </div>
+        <div class="pur-metric-card">
+          <div class="pur-metric-icon" style="background: #FEF3C7; color: #D97706;">
+            <i class="fa-solid fa-truck-fast"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">DALAM PENGIRIMAN</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #B45309;" id="metricInTransit">0</div>
+          </div>
+        </div>
+        <div class="pur-metric-card">
+          <div class="pur-metric-icon" style="background: #DCFCE7; color: #15803D;">
+            <i class="fa-solid fa-boxes-packing"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">SUDAH DITERIMA PENUH</div>
+            <div style="font-size: 1.35rem; font-weight: 800; color: #15803D;" id="metricFullyReceived">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alert Box -->
+      <div id="purAlertBox" style="display:none;" class="alert-box"></div>
+
+      <!-- Accounting Rule Notice -->
+      <div class="accounting-rule-box">
+        <i class="fa-solid fa-triangle-exclamation" style="margin-right: 0.5rem;"></i>
+        <strong>Prinsip Akuntansi:</strong> Pembelian stok supplier <u>bukan</u> pengeluaran operasional. Pembayaran faktur supplier mengurangi kas tapi tidak langsung memotong laba. Stok bertambah hanya saat barang diterima fisik. HPP baru diakui saat barang terjual melalui sistem FIFO.
+      </div>
+
+      <!-- Section: Daftar Faktur & Kontrol Utama -->
+      <div class="form-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem;"><i class="fa-solid fa-file-invoice"></i> Daftar Faktur Pembelian Supplier</h3>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Kelola pengadaan, pembayaran bertermin, dan penerimaan fisik barang.</span>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button onclick="loadPurchaseList()" style="background: white; color: var(--text-main); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 0.9rem; font-size: 0.82rem; font-weight: 600; cursor: pointer;">
+              <i class="fa-solid fa-rotate"></i> Muat Ulang
+            </button>
+            <button onclick="openCreateInvoiceModal()" style="background: var(--primary); color: white; border: none; border-radius: 6px; padding: 0.5rem 1.1rem; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; box-shadow: var(--shadow-sm);">
+              <i class="fa-solid fa-plus-circle"></i> Buat Faktur Pembelian
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Row -->
+        <div style="display: flex; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap; background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem;">
+          <div>
+            <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 2px;">TANGGAL DARI</label>
+            <input type="date" id="filterDateFrom" class="form-input" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" onchange="loadPurchaseList()">
+          </div>
+          <div>
+            <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 2px;">TANGGAL SAMPAI</label>
+            <input type="date" id="filterDateTo" class="form-input" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" onchange="loadPurchaseList()">
+          </div>
+          <div>
+            <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 2px;">SUPPLIER / VENDOR</label>
+            <select id="filterVendorId" class="form-input" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; min-width: 170px;" onchange="loadPurchaseList()">
+              <option value="">Semua Supplier</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 2px;">STATUS PENERIMAAN</label>
+            <select id="filterReceivingStatus" class="form-input" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" onchange="loadPurchaseList()">
+              <option value="">Semua Penerimaan</option>
+              <option value="UNRECEIVED">Belum Diterima</option>
+              <option value="PARTIAL_RECEIVED">Diterima Sebagian</option>
+              <option value="FULLY_RECEIVED">Diterima Penuh</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 2px;">STATUS PEMBAYARAN</label>
+            <select id="filterPaymentStatus" class="form-input" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;" onchange="loadPurchaseList()">
+              <option value="">Semua Pembayaran</option>
+              <option value="UNPAID">Belum Bayar</option>
+              <option value="PARTIAL">Sebagian</option>
+              <option value="PAID">Lunas</option>
+            </select>
+          </div>
+          <div style="display: flex; align-items: flex-end;">
+            <button onclick="resetFilters()" style="background: none; border: 1px solid #CBD5E1; border-radius: 6px; padding: 0.35rem 0.75rem; font-size: 0.78rem; color: #475569; cursor: pointer;">
+              Reset
+            </button>
+          </div>
+        </div>
+
+        <!-- Purchases Table -->
+        <div style="overflow-x: auto;">
+          <table class="data-table items-table">
+            <thead>
+              <tr>
+                <th>ID Faktur</th>
+                <th>Tanggal</th>
+                <th>Supplier / Vendor</th>
+                <th>Total Faktur</th>
+                <th>Sudah Dibayar</th>
+                <th>Sisa Tagihan</th>
+                <th>Penerimaan</th>
+                <th>Pembayaran</th>
+                <th style="min-width: 190px;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="purchasesTableBody">
+              <tr><td colspan="9" style="text-align:center; color: var(--text-muted); padding: 2rem;">Memuat daftar faktur...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 1: BUAT FAKTUR PEMBELIAN BARU -->
+  <!-- ============================================================ -->
+  <div id="createInvoiceModal" class="modal-backdrop" style="display: none;">
+    <div style="background: white; border-radius: 12px; width: 95%; max-width: 780px; padding: 1.5rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <div>
+          <h3 style="margin: 0; color: var(--primary); font-size: 1.15rem;"><i class="fa-solid fa-file-circle-plus"></i> Buat Faktur Pembelian Supplier</h3>
+          <span style="font-size: 0.78rem; color: var(--text-muted);">Pilih supplier terdaftar dan tentukan produk/varian yang dipesan.</span>
+        </div>
+        <button onclick="closeCreateInvoiceModal()" style="background: none; border: none; font-size: 1.35rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <div id="createModalAlertBox" class="alert-box" style="display: none; margin-bottom: 1rem;"></div>
+
+      <div class="form-row">
+        <div>
+          <label class="form-label">Supplier / Vendor Terdaftar *</label>
+          <select id="newInvoiceVendor" class="form-input">
+            <option value="">— Pilih Supplier Terdaftar —</option>
+          </select>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 3px;">
+            Supplier belum ada? Tambahkan terlebih dahulu di tab <a href="finance.html#vendor" style="color: var(--primary); text-decoration: underline;">Rekonsiliasi Vendor (Laporan Keuangan)</a>.
+          </span>
+        </div>
+        <div>
+          <label class="form-label">Tanggal Pembelian *</label>
+          <input type="date" id="newInvoiceDate" class="form-input">
+        </div>
+      </div>
+
+      <div style="margin: 1.25rem 0 0.75rem 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <label class="form-label" style="margin: 0; font-size: 0.88rem; font-weight: 700;">Daftar Item yang Dipesan *</label>
+          <button type="button" class="add-item-btn" onclick="addInvoiceItemRow()">
+            <i class="fa-solid fa-plus"></i> Tambah Item Produk
+          </button>
+        </div>
+        <div id="invoiceItemsContainer"></div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label class="form-label">Ongkos Kirim Pengadaan (Rp)</label>
+          <input type="number" id="newInvoiceShipping" class="form-input" value="0" min="0" oninput="updateInvoiceTotals()">
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 2px;">
+            Ongkir akan dikapitalisasi proporsional ke HPP unit saat penerimaan barang fisik.
+          </span>
+        </div>
+        <div>
+          <label class="form-label">Catatan Pembelian (Opsional)</label>
+          <input type="text" id="newInvoiceNotes" class="form-input" placeholder="Contoh: Pembelian stok batch November via PO #88">
+        </div>
+      </div>
+
+      <!-- Cost Breakdown Summary -->
+      <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem 1rem; margin: 1rem 0; font-size: 0.82rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+          <span style="color: var(--text-muted);">Subtotal Harga Pokok Barang:</span>
+          <strong id="invoiceSubtotalPreview">Rp 0</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+          <span style="color: var(--text-muted);">Ongkos Kirim:</span>
+          <strong id="invoiceShippingPreview">Rp 0</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 0.4rem; margin-top: 0.3rem;">
+          <span style="font-weight: 700; color: var(--text-main);">Estimasi Total Faktur Pembelian:</span>
+          <strong id="invoiceGrandTotalPreview" style="font-size: 1.15rem; color: var(--primary);">Rp 0</strong>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
+        <button type="button" onclick="closeCreateInvoiceModal()" style="background: #F1F5F9; border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; color: var(--text-muted);">
+          Batal
+        </button>
+        <button type="button" id="submitCreateInvoiceBtn" onclick="submitCreateInvoice()" style="background: var(--primary); color: white; border: none; border-radius: 6px; padding: 0.5rem 1.35rem; font-weight: 700; cursor: pointer;">
+          <i class="fa-solid fa-file-circle-plus"></i> Buat Faktur
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 2: PENERIMAAN BARANG FISIK (KONTEKSTUAL & HPP TERKUNCI) -->
+  <!-- ============================================================ -->
+  <div id="receiveModal" class="modal-backdrop" style="display: none;">
+    <div style="background: white; border-radius: 12px; width: 95%; max-width: 800px; padding: 1.5rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <div>
+          <h3 style="margin: 0; color: #0369A1; font-size: 1.15rem;"><i class="fa-solid fa-truck-ramp-box"></i> Penerimaan Barang Fisik dari Supplier</h3>
+          <span style="font-size: 0.78rem; color: var(--text-muted);">Catat kuantitas yang benar-benar sampai. Stok fisik akan otomatis bertambah ke batch FIFO.</span>
+        </div>
+        <button onclick="closeReceiveModal()" style="background: none; border: none; font-size: 1.35rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <div id="receiveModalAlertBox" class="alert-box" style="display: none; margin-bottom: 1rem;"></div>
+
+      <!-- Invoice Context Summary -->
+      <div style="background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.82rem; display: flex; gap: 1.5rem; flex-wrap: wrap;">
+        <div>No Faktur: <strong id="rcvContextId" style="font-family: monospace;">—</strong></div>
+        <div>Supplier: <strong id="rcvContextSupplier">—</strong></div>
+        <div>Status Saat Ini: <span id="rcvContextStatus" class="status-pill status-unreceived">—</span></div>
+      </div>
+
+      <div class="accounting-rule-box" style="margin-bottom: 1rem; background: #ECFDF5; border-color: #A7F3D0; color: #065F46;">
+        <i class="fa-solid fa-lock" style="margin-right: 0.4rem;"></i>
+        <strong>Harga Pokok Terkunci:</strong> Nilai HPP dan alokasi insentif mengikuti faktur asli secara otomatis. Kuantitas yang dicatat hanya yang benar-benar diterima.
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label class="form-label" style="font-weight: 700; margin-bottom: 0.5rem; display: block;">Item Faktur &amp; Konfirmasi Penerimaan Fisik:</label>
+        <div style="overflow-x: auto;">
+          <table class="data-table items-table" style="font-size: 0.8rem;">
+            <thead>
+              <tr>
+                <th>Produk &amp; Varian</th>
+                <th style="text-align: center;">Dipesan</th>
+                <th style="text-align: center;">Sudah Diterima</th>
+                <th style="text-align: center;">Sisa Belum Sampai</th>
+                <th>HPP Unit (Faktur)</th>
+                <th style="width: 130px; text-align: center;">Qty Baru Sampai *</th>
+              </tr>
+            </thead>
+            <tbody id="receiveItemsTableBody">
+              <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Memuat rincian faktur...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="form-row-full">
+        <label class="form-label">Catatan Penerimaan (Kondisi Paket / Ekspedisi / No Resi)</label>
+        <input type="text" id="rcvShipmentNotes" class="form-input" placeholder="Contoh: Paket diterima via JNE Cargo kondisi baik, segel utuh">
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem;">
+        <button type="button" onclick="closeReceiveModal()" style="background: #F1F5F9; border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; color: var(--text-muted);">
+          Batal
+        </button>
+        <button type="button" id="submitReceiveBtn" onclick="submitReceiveShipment()" style="background: #0369A1; color: white; border: none; border-radius: 6px; padding: 0.5rem 1.35rem; font-weight: 700; cursor: pointer;">
+          <i class="fa-solid fa-box-open"></i> Konfirmasi Penerimaan Stok
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 3: CATAT PEMBAYARAN FAKTUR SUPPLIER -->
+  <!-- ============================================================ -->
+  <div id="paymentModal" class="modal-backdrop" style="display: none;">
+    <div style="background: white; border-radius: 12px; width: 95%; max-width: 520px; padding: 1.5rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 style="margin: 0; color: var(--primary); font-size: 1.15rem;"><i class="fa-solid fa-money-bill-wave"></i> Catat Pembayaran Faktur Supplier</h3>
+        <button onclick="closePaymentModal()" style="background: none; border: none; font-size: 1.35rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <div id="modalAlertBox" class="alert-box" style="display: none; margin-bottom: 1rem;"></div>
+
+      <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.8rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+          <span style="color: var(--text-muted);">ID Faktur:</span>
+          <strong id="modalPurchaseId" style="font-family: monospace;">—</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+          <span style="color: var(--text-muted);">Supplier:</span>
+          <strong id="modalSupplierName">—</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+          <span style="color: var(--text-muted);">Total Nilai Faktur:</span>
+          <strong id="modalTotalPurchase">—</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+          <span style="color: var(--text-muted);">Sudah Dibayar Sebelumnya:</span>
+          <span id="modalTotalPaid" style="color: #059669; font-weight: 700;">—</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border); padding-top: 0.35rem; margin-top: 0.35rem;">
+          <span style="color: var(--text-muted); font-weight: 700;">Sisa Tagihan Faktur:</span>
+          <strong id="modalRemainingBill" style="color: #DC2626; font-size: 1rem;">—</strong>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label class="form-label">Tanggal Pembayaran *</label>
+          <input type="date" id="modalPaymentDate" class="form-input">
+        </div>
+        <div>
+          <label class="form-label">Metode Pembayaran *</label>
+          <select id="modalPaymentMethod" class="form-input">
+            <option value="TRANSFER_BCA">Transfer BCA</option>
+            <option value="TRANSFER_MANDIRI">Transfer Mandiri</option>
+            <option value="TRANSFER_BRI">Transfer BRI</option>
+            <option value="CASH">Tunai (Kas Toko)</option>
+            <option value="GIRO">Bilyet Giro</option>
+            <option value="LAINNYA">Lainnya</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row-full">
+        <label class="form-label">Nominal Pembayaran (Rp) *</label>
+        <div style="position: relative;">
+          <input type="number" id="modalPaymentAmount" class="form-input" placeholder="0" min="1" style="font-size: 1.1rem; font-weight: 700;">
+          <button type="button" onclick="setPayFullAmount()" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #E0E7FF; color: #4338CA; border: none; border-radius: 4px; padding: 3px 8px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">
+            Bayar Sisa Lunas
+          </button>
+        </div>
+      </div>
+
+      <div class="form-row-full">
+        <label class="form-label">Catatan Pembayaran (Opsional)</label>
+        <input type="text" id="modalPaymentNotes" class="form-input" placeholder="Contoh: DP 50% via BCA, pelunasan sisa 50% akhir bulan">
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem;">
+        <button onclick="closePaymentModal()" style="background: #F1F5F9; border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; color: var(--text-muted);">
+          Batal
+        </button>
+        <button id="modalSubmitPayBtn" onclick="submitRecordPayment()" style="background: #059669; color: white; border: none; border-radius: 6px; padding: 0.5rem 1.35rem; font-weight: 700; cursor: pointer;">
+          <i class="fa-solid fa-check"></i> Simpan Pembayaran
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 4: DETAIL LENGKAP FAKTUR PEMBELIAN -->
+  <!-- ============================================================ -->
+  <div id="detailModal" class="modal-backdrop" style="display: none;">
+    <div style="background: white; border-radius: 12px; width: 95%; max-width: 820px; padding: 1.5rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+        <div>
+          <h3 style="margin: 0; color: var(--primary); font-size: 1.15rem;"><i class="fa-solid fa-receipt"></i> Rincian Lengkap Faktur Pembelian</h3>
+          <span style="font-size: 0.78rem; color: var(--text-muted);" id="detModalSubtitle">Informasi barang, histori pembayaran, dan status penerimaan.</span>
+        </div>
+        <button onclick="closeDetailModal()" style="background: none; border: none; font-size: 1.35rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <!-- Header Facts -->
+      <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1rem; font-size: 0.82rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+        <div>No Faktur: <strong id="detPurchaseId" style="font-family: monospace;">—</strong></div>
+        <div>Tanggal: <strong id="detPurchaseDate">—</strong></div>
+        <div>Supplier: <strong id="detSupplierName">—</strong></div>
+        <div>Total Faktur: <strong id="detTotalPurchase">—</strong></div>
+        <div>Sudah Dibayar: <strong id="detTotalPaid" style="color: #059669;">—</strong></div>
+        <div>Sisa Tagihan: <strong id="detRemainingBill" style="color: #DC2626;">—</strong></div>
+        <div>Status Terima: <span id="detReceivingStatus" class="status-pill status-unreceived">—</span></div>
+        <div>Status Bayar: <span id="detPaymentStatus" class="status-pill status-unpaid">—</span></div>
+      </div>
+
+      <!-- Items Table -->
+      <h4 style="margin: 1rem 0 0.5rem 0; font-size: 0.9rem; color: var(--text-main);"><i class="fa-solid fa-boxes-stacked"></i> Item Produk yang Dipesan</h4>
+      <div style="overflow-x: auto; margin-bottom: 1.25rem;">
+        <table class="data-table items-table" style="font-size: 0.8rem;">
+          <thead>
+            <tr>
+              <th>Produk &amp; Varian</th>
+              <th style="text-align: center;">Dipesan</th>
+              <th style="text-align: center;">Diterima</th>
+              <th style="text-align: center;">Sisa</th>
+              <th>Harga Pokok</th>
+              <th>Insentif Vendor</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="detItemsTableBody">
+            <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1rem;">Memuat item...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Payment History Table -->
+      <h4 style="margin: 1rem 0 0.5rem 0; font-size: 0.9rem; color: var(--text-main);"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Pembayaran Bertahap</h4>
+      <div style="overflow-x: auto;">
+        <table class="data-table items-table" style="font-size: 0.8rem;">
+          <thead>
+            <tr>
+              <th>ID Bayar</th>
+              <th>Tanggal</th>
+              <th>Nominal</th>
+              <th>Metode</th>
+              <th>Catatan</th>
+              <th>Dicatat Oleh</th>
+            </tr>
+          </thead>
+          <tbody id="detPaymentsTableBody">
+            <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1rem;">Belum ada data pembayaran.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+        <button onclick="closeDetailModal()" style="background: var(--primary); color: white; border: none; border-radius: 6px; padding: 0.5rem 1.25rem; font-weight: 700; cursor: pointer;">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- MODAL 5: RIWAYAT PEMBAYARAN CEPAT -->
+  <!-- ============================================================ -->
+  <div id="historyModal" class="modal-backdrop" style="display: none;">
+    <div style="background: white; border-radius: 12px; width: 95%; max-width: 680px; padding: 1.5rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); max-height: 85vh; display: flex; flex-direction: column;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 style="margin: 0; color: var(--primary); font-size: 1.1rem;"><i class="fa-solid fa-receipt"></i> Riwayat Pembayaran Faktur</h3>
+        <button onclick="closeHistoryModal()" style="background: none; border: none; font-size: 1.35rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+
+      <div id="historyInfoBox" style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.8rem; display: flex; gap: 1.5rem; flex-wrap: wrap;">
+        <div>Faktur: <strong id="histPurchaseId" style="font-family: monospace;">—</strong></div>
+        <div>Supplier: <strong id="histSupplierName">—</strong></div>
+        <div>Total: <strong id="histTotalPurchase">—</strong></div>
+        <div>Dibayar: <strong id="histTotalPaid" style="color: #059669;">—</strong></div>
+        <div>Sisa: <strong id="histRemainingBill" style="color: #DC2626;">—</strong></div>
+      </div>
+
+      <div style="overflow-y: auto; flex: 1;">
+        <table class="data-table items-table" style="font-size: 0.8rem;">
+          <thead>
+            <tr>
+              <th>ID Bayar</th>
+              <th>Tanggal</th>
+              <th>Nominal</th>
+              <th>Metode</th>
+              <th>Catatan</th>
+              <th>Dicatat Oleh</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <tr><td colspan="6" style="text-align:center; color: var(--text-muted); padding: 1.5rem;">Memuat riwayat pembayaran...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+        <button onclick="closeHistoryModal()" style="background: var(--primary); color: white; border: none; border-radius: 6px; padding: 0.5rem 1.25rem; font-weight: 700; cursor: pointer;">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logout Confirmation Modal -->
+  <div id="logoutModal" class="modal-backdrop" style="display: none;">
+    <div style="background: white; border-radius: 12px; width: 90%; max-width: 400px; padding: 1.5rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);">
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: #FEE2E2; color: #DC2626; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </div>
+        <div>
+          <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main);">Konfirmasi Keluar</h3>
+          <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Sesi portal admin Anda akan diakhiri.</p>
+        </div>
+      </div>
+      <p style="font-size: 0.85rem; color: #475569; margin-bottom: 1.25rem;">Apakah Anda yakin ingin keluar dari Portal Manajemen CrocsCircle.ID?</p>
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button onclick="closeLogoutModal()" style="background: #F1F5F9; border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; color: #475569;">
+          Batal
+        </button>
+        <button onclick="confirmLogout()" style="background: #DC2626; color: white; border: none; border-radius: 6px; padding: 0.5rem 1.25rem; font-weight: 600; cursor: pointer;">
+          Ya, Keluar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/purchases.js"></script>
+</body>
+</html>

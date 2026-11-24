@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengaturan Sistem — CrocsCircle.ID</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="authLoadingOverlay" style="position: fixed; inset: 0; background: #F1F5F9; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;">
+    <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: #173B35;"></i>
+    <p style="font-size: 0.9rem; font-weight: 600; color: #475569;">Memuat Pengaturan Sistem...</p>
+  </div>
+
+  <div class="admin-layout" id="adminMainLayout" style="display: none;">
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <i class="fa-solid fa-circle-notch" style="color: var(--accent); font-size: 1.4rem;"></i>
+        <div>
+          <h2>CrocsCircle<span style="color: var(--accent);">.ID</span></h2>
+          <span style="font-size: 0.72rem; color: #94A3B8;">Management Portal</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <div class="sidebar-item" onclick="window.location.href='admin.html'">
+          <i class="fa-solid fa-chart-line"></i> Dashboard
+        </div>
+        <div class="sidebar-item" onclick="window.location.href='products.html'">
+          <i class="fa-solid fa-boxes-stacked"></i> Produk & Stok
+        </div>
+        <div class="sidebar-item" onclick="window.location.href='sales.html'">
+          <i class="fa-solid fa-cash-register"></i> Penjualan (POS)
+        </div>
+        <div class="sidebar-item" onclick="window.location.href='preorder.html'">
+          <i class="fa-solid fa-clock-rotate-left"></i> Pre-Order
+        </div>
+        <div class="sidebar-item" onclick="window.location.href='purchases.html'">
+          <i class="fa-solid fa-truck-ramp-box"></i> Pembelian Stok
+        </div>
+        <div class="sidebar-item" onclick="window.location.href='expenses.html'">
+          <i class="fa-solid fa-receipt"></i> Pengeluaran
+        </div>
+        
+        <!-- Owner Only Menus -->
+        <div class="sidebar-item owner-only" onclick="window.location.href='finance.html'">
+          <i class="fa-solid fa-scale-balanced"></i> Laporan Keuangan
+        </div>
+        <div class="sidebar-item active owner-only">
+          <i class="fa-solid fa-gear"></i> Pengaturan
+        </div>
+      </nav>
+
+      <div style="padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="index.html" class="sidebar-item" style="color: #8DF7E1; padding: 0.6rem 0.8rem; background: rgba(55,184,157,0.12);">
+          <i class="fa-solid fa-store"></i> Toko Publik
+        </a>
+        <button onclick="handleLogout()" class="sidebar-item" style="background: none; border: none; width: 100%; text-align: left; color: #FCA5A5; cursor: pointer;">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar (Logout)
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1 style="margin: 0; font-size: 1.35rem; font-weight: 800; color: var(--primary);">Pengaturan Sistem</h1>
+            <span style="display: inline-flex; align-items: center; gap: 0.4rem; background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; padding: 0.25rem 0.75rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 700;">
+              <i class="fa-solid fa-shield-halved" style="color: var(--accent);"></i> Owner Configuration
+            </span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">Kelola identitas toko, nomor WhatsApp CS, persentase pembagian laba SOP CrocsCircle, dan ambang peringatan stok.</p>
+        </div>
+        
+        <!-- User Profile Pill -->
+        <div style="display: flex; gap: 1rem; align-items: center; background: white; padding: 0.45rem 1rem; border-radius: var(--radius-full); border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;" id="userAvatar">
+            H
+          </div>
+          <div>
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);" id="userFullName">Memuat...</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);" id="userRoleBadge">Role: OWNER</div>
+          </div>
+          <button onclick="handleLogout()" title="Keluar" style="background: none; border: none; color: var(--danger); cursor: pointer; padding: 4px; margin-left: 0.5rem;">
+            <i class="fa-solid fa-power-off"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Settings Content -->
+      <div style="max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem;">
+        
+        <!-- Section 1: Store & WhatsApp Info -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3 style="font-size: 1.05rem; margin: 0; color: var(--primary);">
+              <i class="fa-solid fa-store"></i> Identitas Toko & WhatsApp Checkout
+            </h3>
+          </div>
+          <div style="padding: 1.25rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div>
+                <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Nama Brand Toko:</label>
+                <input type="text" id="settingStoreName" class="form-control" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+              </div>
+              <div>
+                <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Nomor WhatsApp Pemesanan (Customer):</label>
+                <input type="text" id="settingWhatsappNumber" placeholder="Contoh: 6281234567890" class="form-control" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+                <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">Gunakan format negara tanpa tanda + (contoh: 6281234567890).</span>
+              </div>
+            </div>
+            <div>
+              <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Ambang Batas Peringatan Stok Rendah (Pcs):</label>
+              <input type="number" id="settingMinStockAlert" min="1" max="100" class="form-control" style="width: 200px; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+              <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">Varian dengan stok siap jual di bawah angka ini otomatis masuk kategori "Menipis" di dashboard.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Profit Distribution SOP -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <div>
+              <h3 style="font-size: 1.05rem; margin: 0; color: var(--primary);">
+                <i class="fa-solid fa-scale-balanced"></i> SOP Alokasi Pembagian Laba Bersih (Tutup Buku)
+              </h3>
+              <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">Persentase distribusi resmi sesuai kesepakatan Owner & SOP keuangan CrocsCircle.</p>
+            </div>
+          </div>
+          <div style="padding: 1.25rem;">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1rem;">
+              <div>
+                <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;" id="labelOwner1">Owner 1 (%):</label>
+                <input type="number" id="settingOwner1Pct" min="0" max="100" class="form-control" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700;">
+              </div>
+              <div>
+                <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;" id="labelOwner2">Owner 2 (%):</label>
+                <input type="number" id="settingOwner2Pct" min="0" max="100" class="form-control" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700;">
+              </div>
+              <div>
+                <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Dana Darurat (%):</label>
+                <input type="number" id="settingEmergencyPct" min="0" max="100" class="form-control" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700;">
+              </div>
+              <div>
+                <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Laba Ditahan (%):</label>
+                <input type="number" id="settingRetainedPct" min="0" max="100" class="form-control" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700;">
+              </div>
+            </div>
+            
+            <div id="allocationSumWarning" style="display: none; background: #FEF2F2; border: 1px solid #FCA5A5; color: #991B1B; padding: 0.65rem 1rem; border-radius: 6px; font-size: 0.82rem; font-weight: 600; margin-bottom: 1rem;">
+              <i class="fa-solid fa-triangle-exclamation"></i> Total seluruh alokasi harus persis 100%. Saat ini: <span id="currentTotalAllocation">0</span>%
+            </div>
+
+            <div style="display: flex; justify-content: flex-end;">
+              <button onclick="saveAllSettings()" id="saveSettingsBtn" class="btn btn-primary" style="padding: 0.65rem 1.5rem;">
+                <i class="fa-solid fa-floppy-disk"></i> Simpan Pengaturan
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Registered User Accounts (RBAC) -->
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <h3 style="font-size: 1.05rem; margin: 0; color: var(--primary);">
+              <i class="fa-solid fa-users-gear"></i> Daftar Akun Pengguna Terdaftar (RBAC)
+            </h3>
+          </div>
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>User ID</th>
+                  <th>Nama Lengkap</th>
+                  <th>Username</th>
+                  <th style="text-align: center;">Peran (Role)</th>
+                  <th style="text-align: center;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="js/settings.js"></script>
+</body>
+</html>

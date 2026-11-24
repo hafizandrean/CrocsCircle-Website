@@ -136,10 +136,34 @@ const ClosingService = (function() {
   function previewMonthlyReport(month, year, customPercentages) {
     const incomeStatement = FinancialService.calculateMonthlyIncomeStatement(month, year);
     const profitSim = simulateProfitDistribution(incomeStatement.net_profit, customPercentages);
+    const cashFlow = typeof FinancialService.getMonthlyCashFlowStatement === "function"
+      ? FinancialService.getMonthlyCashFlowStatement(month, year)
+      : null;
 
     // Ambil status periode saat ini
     const periodId = incomeStatement.period.period_id;
     const periodRow = DatabaseHelper.getRowByPk("PERIODE_KEUANGAN", "period_id", periodId);
+
+    // Tentukan status kesiapan penutupan buku (Closing Readiness Status)
+    let closingReadiness = "READY_TO_CLOSE";
+    const readinessIssues = [];
+
+    if (periodRow && periodRow.period_status === "CLOSED") {
+      closingReadiness = "CLOSED";
+    } else if (periodRow && periodRow.period_status === "OPEN" && (Number(periodRow.closing_version) > 1)) {
+      closingReadiness = "REOPENED";
+    }
+
+    if (closingReadiness !== "CLOSED") {
+      if (cashFlow && cashFlow.reconciliation_status === "NEEDS_RECONCILIATION") {
+        closingReadiness = "NEEDS_RECONCILIATION";
+        readinessIssues.push(cashFlow.verification_message);
+      }
+      if (incomeStatement.hpp_breakdown && incomeStatement.hpp_breakdown.po_pending_hpp_count > 0) {
+        closingReadiness = "NEEDS_RECONCILIATION";
+        readinessIssues.push("Terdapat " + incomeStatement.hpp_breakdown.po_pending_hpp_count + " PO lunas dengan HPP belum lengkap (menunggu alokasi).");
+      }
+    }
 
     return {
       period_id: periodId,
@@ -147,8 +171,11 @@ const ClosingService = (function() {
       year: incomeStatement.period.year,
       period_status: periodRow ? periodRow.period_status : "OPEN",
       closing_version: periodRow ? (periodRow.closing_version || 1) : 1,
+      closing_readiness: closingReadiness,
+      readiness_issues: readinessIssues,
       income_statement: incomeStatement,
-      profit_distribution: profitSim
+      profit_distribution: profitSim,
+      cash_flow: cashFlow
     };
   }
 
@@ -195,6 +222,18 @@ const ClosingService = (function() {
 
       // 3. Hitung angka final laporan dan pembagian laba
       const incomeStatement = FinancialService.calculateMonthlyIncomeStatement(targetMonth, targetYear);
+      const cashFlow = typeof FinancialService.getMonthlyCashFlowStatement === "function"
+        ? FinancialService.getMonthlyCashFlowStatement(targetMonth, targetYear)
+        : null;
+
+      // HARD GUARD 1: Penolakan langsung di backend jika terdapat PO lunas dengan HPP PENDING_ALLOCATION
+      if (incomeStatement.hpp_breakdown && (Number(incomeStatement.hpp_breakdown.po_pending_hpp_count) || 0) > 0) {
+        throw new Error(
+          "Tutup buku periode " + periodId + " ditolak: Terdapat " + incomeStatement.hpp_breakdown.po_pending_hpp_count +
+          " PO lunas yang belum memiliki alokasi HPP FIFO (PENDING_ALLOCATION). Seluruh HPP PO wajib dialokasikan sebelum penutupan buku."
+        );
+      }
+
       const profitDist = simulateProfitDistribution(incomeStatement.net_profit, customPercentages);
 
       const now = new Date();
@@ -246,6 +285,17 @@ const ClosingService = (function() {
       }
 
       // 6. Simpan Snapshot di CLOSING_BULANAN
+      const snapshotPayload = {
+        period_id: periodId,
+        closing_version: currentVersion,
+        closed_by: caller.username,
+        closed_at: now,
+        income_statement: incomeStatement,
+        profit_distribution: profitDist,
+        cash_flow: cashFlow,
+        user_notes: closingNotes || ""
+      };
+
       DatabaseHelper.insertRow("CLOSING_BULANAN", {
         closing_id: closingId,
         period_id: periodId,
@@ -261,7 +311,7 @@ const ClosingService = (function() {
         owner2_amount: profitDist.allocations.owner2_amount,
         emergency_amount: profitDist.allocations.emergency_amount,
         retained_amount: profitDist.allocations.retained_amount,
-        notes: closingNotes || ("Tutup buku bulanan " + periodId),
+        notes: JSON.stringify(snapshotPayload),
         created_at: now
       });
 
@@ -275,6 +325,7 @@ const ClosingService = (function() {
         gross_profit: incomeStatement.gross_profit,
         operational_expenses: incomeStatement.expenses_breakdown.operational_expenses,
         net_profit: incomeStatement.net_profit,
+        ending_cash_balance: (cashFlow && cashFlow.ending_cash !== null) ? cashFlow.ending_cash : 0,
         notes: closingNotes || ("Tutup buku resmi V" + currentVersion)
       });
 

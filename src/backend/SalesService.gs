@@ -646,6 +646,7 @@ const SalesService = (function() {
 
   return {
     createSale: createSale,
+    recordSalesTransaction: createSale,
     getSaleById: getSaleById,
     returnSaleItem: returnSaleItem,
     getSalesList: getSalesList

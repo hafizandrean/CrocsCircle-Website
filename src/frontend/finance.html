@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan Keuangan & Tutup Buku — CrocsCircle.ID</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .fin-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .fin-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .tab-container {
+      display: flex;
+      gap: 0;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--border);
+    }
+    .tab-btn {
+      padding: 0.65rem 1.25rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--accent);
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .badge-reconciled { background: #DCFCE7; color: #166534; border: 1px solid #86EFAC; }
+    .badge-unreconciled { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
+    .badge-closed { background: #E0E7FF; color: #3730A3; border: 1px solid #A5B4FC; }
+    .badge-open { background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC; }
+    .badge-reopened { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
+    
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.55rem 0;
+      border-bottom: 1px dashed #E2E8F0;
+      font-size: 0.85rem;
+    }
+    .breakdown-row:last-child {
+      border-bottom: none;
+    }
+    .breakdown-total {
+      font-weight: 800;
+      border-top: 2px solid var(--border);
+      padding-top: 0.75rem;
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+    }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-content {
+      background: white;
+      border-radius: var(--radius-lg);
+      max-width: 540px;
+      width: 100%;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Overlay -->
+  <div id="authLoadingOverlay" style="position: fixed; inset: 0; background: #F1F5F9; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;">
+    <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.5rem; color: #173B35;"></i>
+    <p style="font-size: 0.9rem; font-weight: 600; color: #475569;">Memverifikasi Otorisasi Owner...</p>
+  </div>
+
+  <div class="admin-layout" id="adminMainLayout" style="display: none;">
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <i class="fa-solid fa-circle-notch" style="color: var(--accent); font-size: 1.4rem;"></i>
+        <div>
+          <h2>CrocsCircle<span style="color: var(--accent);">.ID</span></h2>
+          <span style="font-size: 0.72rem; color: #94A3B8;">Management Portal</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu">
+        <div class="sidebar-item" onclick="window.location.href='admin.html'">
+          <i class="fa-solid fa-chart-line"></i> Dashboard
+        </div>
+        <div class="sidebar-item" onclick="window.location.href='products.html'">
+          <i class="fa-solid fa-boxes-stacked"></i> Produk & Stok
+        </div>
+        <div class="sidebar-item" onclick="window.location.href='sales.html'">
+          <i class="fa-solid fa-cash-register"></i> Penjualan (POS)
+        </div>
+        <div class="sidebar-item" onclick="window.location.href='preorder.html'">
+          <i class="fa-solid fa-clock-rotate-left"></i> Pre-Order
+        </div>
+        <div class="sidebar-item" onclick="window.location.href='purchases.html'">
+          <i class="fa-solid fa-truck-ramp-box"></i> Pembelian Stok
+        </div>
+        <div class="sidebar-item" onclick="window.location.href='expenses.html'">
+          <i class="fa-solid fa-receipt"></i> Pengeluaran
+        </div>
+        
+        <!-- Owner Only Menus -->
+        <div class="sidebar-item active owner-only" id="sidebarNavFinance" onclick="goToFinanceTab()">
+          <i class="fa-solid fa-scale-balanced"></i> Laporan Keuangan
+        </div>
+        <div class="sidebar-item owner-only" onclick="window.location.href='settings.html'">
+          <i class="fa-solid fa-gear"></i> Pengaturan
+        </div>
+      </nav>
+
+      <div style="padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+        <a href="index.html" class="sidebar-item" style="color: #8DF7E1; padding: 0.6rem 0.8rem; background: rgba(55,184,157,0.12);">
+          <i class="fa-solid fa-store"></i> Toko Publik
+        </a>
+        <button onclick="handleLogout()" class="sidebar-item" style="background: none; border: none; width: 100%; text-align: left; color: #FCA5A5; cursor: pointer;">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar (Logout)
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Panel -->
+    <main class="admin-main">
+      <header class="admin-topbar">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <h1 style="margin: 0;">Laporan Keuangan & Rekonsiliasi</h1>
+            <span class="badge badge-success"><i class="fa-solid fa-lock"></i> OWNER ONLY</span>
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">Laba Rugi Baku, Arus Kas Mandiri, Rekonsiliasi Vendor & Tutup Buku Multi-Versi</p>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <!-- Period Selector -->
+          <div style="display: flex; align-items: center; gap: 0.5rem; background: white; padding: 0.35rem 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border);">
+            <i class="fa-regular fa-calendar" style="color: var(--accent);"></i>
+            <select id="filterMonth" style="border: none; font-weight: 700; font-size: 0.85rem; outline: none;" onchange="loadAllFinancialData()">
+              <option value="10">Oktober</option>
+              <option value="11" selected>November</option>
+              <option value="12">Desember</option>
+            </select>
+            <select id="filterYear" style="border: none; font-weight: 700; font-size: 0.85rem; outline: none;" onchange="loadAllFinancialData()">
+              <option value="2026" selected>2026</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; align-items: center; background: white; padding: 0.45rem 1rem; border-radius: var(--radius-full); border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;" id="userAvatar">H</div>
+            <div>
+              <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);" id="userFullName">Owner Hafiz</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted);">Role: OWNER</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- NAVIGATION TABS -->
+      <div class="tab-container">
+        <button class="tab-btn active" id="tabBtnIncome" onclick="switchTab('income')">
+          <i class="fa-solid fa-file-invoice-dollar"></i> Laba Rugi (P&L)
+        </button>
+        <button class="tab-btn" id="tabBtnCashFlow" onclick="switchTab('cashflow')">
+          <i class="fa-solid fa-money-bill-transfer"></i> Arus Kas (Cash Flow)
+        </button>
+        <button class="tab-btn" id="tabBtnVendor" onclick="switchTab('vendor')">
+          <i class="fa-solid fa-handshake"></i> Rekonsiliasi Vendor
+        </button>
+        <button class="tab-btn" id="tabBtnClosing" onclick="switchTab('closing')">
+          <i class="fa-solid fa-book-bookmark"></i> Tutup Buku & Alokasi
+        </button>
+      </div>
+
+      <!-- TAB 1: LABA RUGI (INCOME STATEMENT) -->
+      <div id="tabContentIncome">
+        <!-- Top Metrics -->
+        <div class="fin-metrics-grid">
+          <div class="fin-card" style="border-left: 4px solid var(--primary);">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">TOTAL OMZET RESMI</div>
+            <div style="font-size: 1.45rem; font-weight: 800; color: var(--primary); margin: 0.35rem 0;" id="kpiPnlOmzet">Rp0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Retail + Insentif Konsinyasi + PO Diakui</div>
+          </div>
+          <div class="fin-card" style="border-left: 4px solid #DC2626;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">HPP FIFO TERKAPITALISASI</div>
+            <div style="font-size: 1.45rem; font-weight: 800; color: #DC2626; margin: 0.35rem 0;" id="kpiPnlHpp">Rp0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Termasuk ongkir & insentif beli supplier</div>
+          </div>
+          <div class="fin-card" style="border-left: 4px solid var(--accent);">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">LABA KOTOR (GROSS PROFIT)</div>
+            <div style="font-size: 1.45rem; font-weight: 800; color: var(--primary); margin: 0.35rem 0;" id="kpiPnlGrossProfit">Rp0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);" id="kpiPnlGrossMargin">Margin: 0%</div>
+          </div>
+          <div class="fin-card" style="border-left: 4px solid #F59E0B;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">BEBAN OPERASIONAL</div>
+            <div style="font-size: 1.45rem; font-weight: 800; color: #D97706; margin: 0.35rem 0;" id="kpiPnlExpenses">Rp0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Murni operasional (tanpa beli stok)</div>
+          </div>
+          <div class="fin-card" style="border-left: 4px solid #059669; background: #F0FDF4;">
+            <div style="font-size: 0.75rem; color: #065F46; font-weight: 700;">LABA BERSIH BERJALAN</div>
+            <div style="font-size: 1.45rem; font-weight: 800; color: #059669; margin: 0.35rem 0;" id="kpiPnlNetProfit">Rp0</div>
+            <div style="font-size: 0.72rem; color: #047857;">Dasar alokasi pembagian 4 pos</div>
+          </div>
+        </div>
+
+        <!-- Breakdown Details 2-Column Grid -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+          <!-- Revenue & HPP Breakdown -->
+          <div class="fin-card">
+            <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-receipt" style="color: var(--primary);"></i> Rincian Pengakuan Pendapatan (Omzet)
+            </h3>
+            <div class="breakdown-row">
+              <span>Penjualan Retail Stok Sendiri</span>
+              <strong id="pnlOwnSales">Rp0</strong>
+            </div>
+            <div class="breakdown-row">
+              <span>Insentif/Margin Penjualan Konsinyasi (Dzaki)</span>
+              <strong id="pnlConsignIncentive">Rp0</strong>
+            </div>
+            <div class="breakdown-row">
+              <span>Pre-Order (PO) Lunas Diakui (settlement_date)</span>
+              <strong id="pnlPoRecognized">Rp0</strong>
+            </div>
+            <div class="breakdown-row breakdown-total">
+              <span>Total Pendapatan Usaha</span>
+              <span style="color: var(--primary);" id="pnlTotalOmzet">Rp0</span>
+            </div>
+
+            <h3 style="font-size: 1rem; margin-top: 1.5rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-boxes-packing" style="color: #DC2626;"></i> Rincian Beban Pokok Penjualan (HPP)
+            </h3>
+            <div class="breakdown-row">
+              <span>HPP Barang Retail Terjual (FIFO Multi-Batch)</span>
+              <strong id="pnlSalesHpp">Rp0</strong>
+            </div>
+            <div class="breakdown-row">
+              <span>HPP Pre-Order (PO) Lunas Diakui</span>
+              <strong id="pnlPoHpp">Rp0</strong>
+            </div>
+            <div class="breakdown-row">
+              <span>Kompensasi Retur / Klaim HPP</span>
+              <strong id="pnlHppReturns">Rp0</strong>
+            </div>
+            <div class="breakdown-row breakdown-total">
+              <span>Total HPP Terakui</span>
+              <span style="color: #DC2626;" id="pnlTotalHpp">Rp0</span>
+            </div>
+          </div>
+
+          <!-- Expenses & Profit Distribution Preview -->
+          <div class="fin-card">
+            <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-list-check" style="color: #D97706;"></i> Rincian Beban Operasional
+            </h3>
+            <div id="pnlExpensesList">
+              <div class="breakdown-row" style="color: var(--text-muted);">
+                <span>Belum ada beban operasional tercatat pada periode ini.</span>
+              </div>
+            </div>
+            <div class="breakdown-row breakdown-total">
+              <span>Total Beban Operasional</span>
+              <span style="color: #D97706;" id="pnlTotalExpenses">Rp0</span>
+            </div>
+
+            <h3 style="font-size: 1rem; margin-top: 1.5rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-pie-chart" style="color: #059669;"></i> Preview Pembagian Keuntungan 4 Pos
+            </h3>
+            <div class="breakdown-row">
+              <span>Owner 1 (Hafiz - 20%)</span>
+              <strong id="pnlAllocOwner1">Rp0</strong>
+            </div>
+            <div class="breakdown-row">
+              <span>Owner 2 (Harits - 20%)</span>
+              <strong id="pnlAllocOwner2">Rp0</strong>
+            </div>
+            <div class="breakdown-row">
+              <span>Dana Darurat Usaha (10%)</span>
+              <strong id="pnlAllocEmergency">Rp0</strong>
+            </div>
+            <div class="breakdown-row">
+              <span>Keuntungan Ditahan / Kas Operasional (50%)</span>
+              <strong id="pnlAllocRetained">Rp0</strong>
+            </div>
+            <div class="breakdown-row breakdown-total" style="background: #F8FAFC; padding: 0.65rem;">
+              <span>Total Laba Bersih Teralokasi</span>
+              <span style="color: #059669;" id="pnlAllocTotal">Rp0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: ARUS KAS (CASH FLOW STATEMENT) -->
+      <div id="tabContentCashFlow" style="display: none;">
+        <!-- Top Cash Status -->
+        <div style="background: white; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: #ECFDF5; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--accent);">
+              <i class="fa-solid fa-vault"></i>
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <h3 style="margin: 0;">Status Rekonsiliasi Kas:</h3>
+                <span id="cashReconBadge" class="status-badge badge-unreconciled">MEMUAT...</span>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;" id="cashReconDesc">Memeriksa status verifikasi saldo awal...</p>
+            </div>
+          </div>
+          <div>
+            <button id="btnOpenVerifyModal" onclick="openOpeningCashModal()" class="btn btn-secondary" style="display: none;">
+              <i class="fa-solid fa-circle-check"></i> Verifikasi Saldo Awal Owner
+            </button>
+          </div>
+        </div>
+
+        <!-- Cash Metrics Grid -->
+        <div class="fin-metrics-grid">
+          <div class="fin-card">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">SALDO AWAL KAS</div>
+            <div style="font-size: 1.45rem; font-weight: 800; color: var(--text-main); margin: 0.35rem 0;" id="kpiCashBeginning">Rp0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Kas tunai + Bank + E-Wallet</div>
+          </div>
+          <div class="fin-card" style="border-left: 4px solid #059669;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">TOTAL KAS MASUK</div>
+            <div style="font-size: 1.45rem; font-weight: 800; color: #059669; margin: 0.35rem 0;" id="kpiCashInflow">Rp0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Retail, Konsinyasi Bruto & DP PO</div>
+          </div>
+          <div class="fin-card" style="border-left: 4px solid #DC2626;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">TOTAL KAS KELUAR</div>
+            <div style="font-size: 1.45rem; font-weight: 800; color: #DC2626; margin: 0.35rem 0;" id="kpiCashOutflow">Rp0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Stok supplier, Hak vendor, Beban & Tarik kas</div>
+          </div>
+          <div class="fin-card" style="border-left: 4px solid #3B82F6;">
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700;">NET CASH FLOW BULAN INI</div>
+            <div style="font-size: 1.45rem; font-weight: 800; color: #2563EB; margin: 0.35rem 0;" id="kpiCashNet">Rp0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Kas masuk - Kas keluar</div>
+          </div>
+          <div class="fin-card" style="border-left: 4px solid var(--accent); background: #F0FDF4;">
+            <div style="font-size: 0.75rem; color: #065F46; font-weight: 700;">SALDO AKHIR KAS BERJALAN</div>
+            <div style="font-size: 1.45rem; font-weight: 800; color: #065F46; margin: 0.35rem 0;" id="kpiCashEnding">Rp0</div>
+            <div style="font-size: 0.72rem; color: #047857;">Estafet saldo pembukaan bulan berikutnya</div>
+          </div>
+        </div>
+
+        <!-- Inflow & Outflow Detail Tables -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+          <!-- Inflow Breakdown -->
+          <div class="fin-card">
+            <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: #059669;">
+              <i class="fa-solid fa-arrow-down-long"></i> Rincian Arus Kas Masuk (Customer Receipts)
+            </h3>
+            <div class="breakdown-row">
+              <span>Kas Masuk Penjualan Retail Stok Sendiri</span>
+              <strong id="cashInflowRetail">Rp0</strong>
+            </div>
+            <div class="breakdown-row">
+              <span>Kas Bruto Titipan Pelanggan (Barang Konsinyasi)</span>
+              <strong id="cashInflowConsign">Rp0</strong>
+            </div>
+            <div class="breakdown-row">
+              <span>Uang Muka (DP) & Pelunasan Pre-Order</span>
+              <strong id="cashInflowPO">Rp0</strong>
+            </div>
+            <div class="breakdown-row breakdown-total">
+              <span>Total Kas Masuk Fisik & Rekening</span>
+              <span style="color: #059669;" id="cashInflowTotal">Rp0</span>
+            </div>
+          </div>
+
+          <!-- Outflow Breakdown -->
+          <div class="fin-card">
+            <h3 style="font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; color: #DC2626;">
+              <i class="fa-solid fa-arrow-up-long"></i> Rincian Arus Kas Keluar (Disbursements)
+            </h3>
+            <div class="breakdown-row">
+              <span>Pembayaran Pembelian Stok Supplier (Aset Persediaan)</span>
+              <strong id="cashOutflowSupplier">Rp0</strong>
+            </div>
+            <div class="breakdown-row">
+              <span>Pembayaran Settlement Hak Vendor Konsinyasi</span>
+              <strong id="cashOutflowVendor">Rp0</strong>
+            </div>
+            <div class="breakdown-row">
+              <span>Beban Operasional Toko (Sewa, Listrik, Operasional)</span>
+              <strong id="cashOutflowExpenses">Rp0</strong>
+            </div>
+            <div class="breakdown-row">
+              <span>Penarikan Kas Fisik Owner (Withdrawals)</span>
+              <strong id="cashOutflowWithdrawals">Rp0</strong>
+            </div>
+            <div class="breakdown-row breakdown-total">
+              <span>Total Kas Keluar</span>
+              <span style="color: #DC2626;" id="cashOutflowTotal">Rp0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kewajiban Setoran Vendor Berjalan & Analisis Posisi Kas -->
+        <div class="fin-card" style="margin-top: 1.5rem; border-left: 4px solid #D97706; background: #FFFBEB;">
+          <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: #92400E; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-handshake-angle"></i> Kewajiban Setoran Vendor Berjalan & Analisis Posisi Kas
+          </h3>
+          <p style="font-size: 0.82rem; color: #78350F; margin-bottom: 1rem;">
+            Rincian kewajiban lancar pembayaran hak titip jual vendor konsinyasi dan estimasi sisa kas operasional bisnis.
+          </p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div style="background: white; padding: 0.75rem; border-radius: 6px; border: 1px solid #FDE68A;">
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Kewajiban Setoran Vendor Berjalan</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: #B45309;" id="restrictedVendorPayables">Rp0</div>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">Hak vendor konsinyasi yang belum disetor</span>
+            </div>
+            <div style="background: white; padding: 0.75rem; border-radius: 6px; border: 1px solid #FDE68A;">
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Estimasi Kas Operasional Setelah Kewajiban Vendor</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: #047857;" id="unrestrictedFreeCash">Rp0</div>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">Saldo kas setelah memperhitungkan hak vendor</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: REKONSILIASI VENDOR -->
+      <div id="tabContentVendor" style="display: none;">
+        <div class="fin-card" style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div>
+              <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-handshake" style="color: var(--primary);"></i> Rekonsiliasi Partner Konsinyasi: Dzaki (Jaki)</h3>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Hak Bersih: Rp270.000 / unit | Insentif Jual CrocsCircle: Rp10.000 / unit</p>
+            </div>
+            <button class="btn btn-primary" onclick="openSettlementModal()">
+              <i class="fa-solid fa-money-bill-transfer"></i> Eksekusi Settlement Baru
+            </button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+            <div style="background: #F8FAFC; padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+              <span style="font-size: 0.75rem; color: var(--text-muted);">TOTAL KEWAJIBAN KOTOR (GROSS)</span>
+              <div style="font-size: 1.3rem; font-weight: 800; color: var(--text-main);" id="vndGrossPayable">Rp0</div>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">Unit terjual yang menjadi hak vendor</span>
+            </div>
+            <div style="background: #F8FAFC; padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+              <span style="font-size: 0.75rem; color: var(--text-muted);">POTONGAN KLAIM RETUR</span>
+              <div style="font-size: 1.3rem; font-weight: 800; color: #DC2626;" id="vndClaimsDeducted">Rp0</div>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">Kompensasi piutang retur barang rusak</span>
+            </div>
+            <div style="background: #ECFDF5; padding: 1rem; border-radius: 8px; border: 1px solid #A7F3D0;">
+              <span style="font-size: 0.75rem; color: #065F46;">NET TRANSFER DISETOR KE VENDOR</span>
+              <div style="font-size: 1.3rem; font-weight: 800; color: #059669;" id="vndNetPayout">Rp0</div>
+              <span style="font-size: 0.72rem; color: #047857;">Gross - Potongan klaim</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settlement History Table -->
+        <div class="fin-card">
+          <h3 style="font-size: 1rem; margin-bottom: 1rem;"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Settlement Pembayaran Vendor</h3>
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>No. Settlement</th>
+                  <th>Tanggal</th>
+                  <th>Gross Payable</th>
+                  <th>Potongan Klaim</th>
+                  <th>Net Disetor</th>
+                  <th>Metode</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="vndSettlementTableBody">
+                <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Belum ada riwayat settlement pada periode ini.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: TUTUP BUKU & REOPEN -->
+      <div id="tabContentClosing" style="display: none;">
+        <!-- Period Control Banner -->
+        <div class="fin-card" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <h3 style="margin: 0; font-size: 1.15rem;">Status Periode: <span id="clsPeriodLabel">PER-2026-11</span></h3>
+              <span id="clsPeriodBadge" class="status-badge badge-open">OPEN</span>
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.35rem;" id="clsPeriodDesc">
+              Periode buku aktif. Seluruh transaksi penjualan, pembelian, dan beban masih dapat dicatat.
+            </p>
+          </div>
+          <div style="display: flex; gap: 0.75rem;">
+            <button id="btnExecuteClose" class="btn btn-primary" onclick="openClosePeriodModal()">
+              <i class="fa-solid fa-lock"></i> Eksekusi Tutup Buku (Month-End Close)
+            </button>
+            <button id="btnExecuteReopen" class="btn btn-danger" style="display: none;" onclick="openReopenModal()">
+              <i class="fa-solid fa-lock-open"></i> Reopen Periode (Buka Kembali)
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Fund Balances Grid -->
+        <div style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <h3 style="margin: 0; font-size: 1rem;"><i class="fa-solid fa-vault"></i> Saldo Real 4 Pos Keuntungan Bisnis</h3>
+            <button class="btn btn-secondary" onclick="openWithdrawModal()" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;">
+              <i class="fa-solid fa-money-bill-transfer"></i> Catat Penarikan Kas Fisik (Withdrawal)
+            </button>
+          </div>
+          <div class="fin-metrics-grid">
+            <div class="fin-card" style="border-top: 3px solid var(--primary);">
+              <span style="font-size: 0.75rem; color: var(--text-muted);">POS OWNER 1 (HAFIZ - 20%)</span>
+              <div style="font-size: 1.3rem; font-weight: 800; color: var(--primary); margin: 0.35rem 0;" id="fundOwner1">Rp0</div>
+              <span style="font-size: 0.72rem; color: var(--text-muted);" id="subOwner1">Tarik kas: Rp0</span>
+            </div>
+            <div class="fin-card" style="border-top: 3px solid var(--primary);">
+              <span style="font-size: 0.75rem; color: var(--text-muted);">POS OWNER 2 (HARITS - 20%)</span>
+              <div style="font-size: 1.3rem; font-weight: 800; color: var(--primary); margin: 0.35rem 0;" id="fundOwner2">Rp0</div>
+              <span style="font-size: 0.72rem; color: var(--text-muted);" id="subOwner2">Tarik kas: Rp0</span>
+            </div>
+            <div class="fin-card" style="border-top: 3px solid #D97706;">
+              <span style="font-size: 0.75rem; color: var(--text-muted);">DANA DARURAT USAHA (10%)</span>
+              <div style="font-size: 1.3rem; font-weight: 800; color: #D97706; margin: 0.35rem 0;" id="fundEmergency">Rp0</div>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">Cadangan operasional krisis</span>
+            </div>
+            <div class="fin-card" style="border-top: 3px solid #059669;">
+              <span style="font-size: 0.75rem; color: var(--text-muted);">KEUNTUNGAN DITAHAN (50%)</span>
+              <div style="font-size: 1.3rem; font-weight: 800; color: #059669; margin: 0.35rem 0;" id="fundRetained">Rp0</div>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">Modal reinvestasi persediaan</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Snapshots Audit Trail Table -->
+        <div class="fin-card">
+          <h3 style="font-size: 1rem; margin-bottom: 1rem;"><i class="fa-solid fa-timeline"></i> Audit Trail Riwayat Tutup Buku (CLOSING_BULANAN)</h3>
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Closing ID</th>
+                  <th>Versi</th>
+                  <th>Tanggal Closing</th>
+                  <th>Omzet Resmi</th>
+                  <th>HPP Terakui</th>
+                  <th>Laba Bersih</th>
+                  <th>Status Snapshot</th>
+                  <th>Otorisator</th>
+                </tr>
+              </thead>
+              <tbody id="clsSnapshotsTableBody">
+                <tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Belum ada riwayat snapshot penutupan buku untuk periode ini.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- MODAL 1: VERIFIKASI SALDO AWAL OWNER -->
+  <div class="modal-overlay" id="modalOpeningCash">
+    <div class="modal-content">
+      <div style="padding: 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-vault" style="color: var(--primary);"></i> Verifikasi Saldo Awal Kas</h3>
+        <button onclick="closeModal('modalOpeningCash')" style="border: none; background: none; font-size: 1.2rem; cursor: pointer;">&times;</button>
+      </div>
+      <div style="padding: 1.25rem;">
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Saldo awal kas tidak boleh ditebak. Rekam rincian saldo fisik riil per 1 Oktober 2026 yang telah diverifikasi rekening koran & brankas.
+        </p>
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700;">Tanggal Pembukaan:</label>
+          <input type="date" id="openCashDate" value="2026-10-01" class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;" />
+        </div>
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700;">Kas Fisik Tunai (Cash in Hand):</label>
+          <input type="number" id="openCashTunai" value="5000000" class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;" />
+        </div>
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700;">Saldo Rekening Bank (BCA):</label>
+          <input type="number" id="openCashBank" value="20000000" class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;" />
+        </div>
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700;">Saldo E-Wallet (QRIS/ShopeePay):</label>
+          <input type="number" id="openCashEwallet" value="0" class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;" />
+        </div>
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700;">Bukti Rekonsiliasi / Dokumen Pendukung:</label>
+          <input type="text" id="openCashEvidence" value="Rekening koran BCA & Kas Brankas Toko" class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;" />
+        </div>
+      </div>
+      <div style="padding: 1rem 1.25rem; background: #F8FAFC; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button onclick="closeModal('modalOpeningCash')" class="btn btn-secondary">Batal</button>
+        <button onclick="submitOpeningCash()" class="btn btn-primary"><i class="fa-solid fa-check"></i> Simpan & Verifikasi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: TUTUP BUKU BULANAN -->
+  <div class="modal-overlay" id="modalClosePeriod">
+    <div class="modal-content">
+      <div style="padding: 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-lock" style="color: var(--primary);"></i> Konfirmasi Tutup Buku Resmi</h3>
+        <button onclick="closeModal('modalClosePeriod')" style="border: none; background: none; font-size: 1.2rem; cursor: pointer;">&times;</button>
+      </div>
+      <div style="padding: 1.25rem;">
+        <div style="background: #F8FAFC; padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1rem;">
+          <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);" id="modalCloseSummaryText">Memuat ringkasan...</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.35rem;">
+            Setelah ditutup, snapshot permanen akan dicatat di CLOSING_BULANAN, alokasi 4 pos dibukukan ke SALDO_DANA, dan seluruh pencatatan transaksi pada periode ini akan TERKUNCI.
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700;">Catatan Penutupan Buku:</label>
+          <textarea id="closeNotes" class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem; height: 70px;" placeholder="Contoh: Tutup buku resmi periode berjalan disetujui Owner"></textarea>
+        </div>
+      </div>
+      <div style="padding: 1rem 1.25rem; background: #F8FAFC; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button onclick="closeModal('modalClosePeriod')" class="btn btn-secondary">Batal</button>
+        <button onclick="submitClosePeriod()" class="btn btn-primary"><i class="fa-solid fa-lock"></i> Kunci & Tutup Buku</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: REOPEN PERIODE -->
+  <div class="modal-overlay" id="modalReopenPeriod">
+    <div class="modal-content">
+      <div style="padding: 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 1.1rem; color: #DC2626;"><i class="fa-solid fa-lock-open"></i> Otorisasi Reopen Periode Buku</h3>
+        <button onclick="closeModal('modalReopenPeriod')" style="border: none; background: none; font-size: 1.2rem; cursor: pointer;">&times;</button>
+      </div>
+      <div style="padding: 1.25rem;">
+        <div style="background: #FEF2F2; padding: 1rem; border-radius: 8px; border: 1px solid #FECACA; margin-bottom: 1rem;">
+          <div style="font-size: 0.85rem; font-weight: 700; color: #991B1B;">Peringatan Audit Trail Reopen!</div>
+          <div style="font-size: 0.78rem; color: #7F1D1D; margin-top: 0.35rem;">
+            Snapshot penutupan lama TIDAK AKAN DIHAPUS. Alokasi laba versi sebelumnya akan dibalik (ADJUSTMENT). Jika dana alokasi sudah sempat ditarik kasir/owner, selisihnya akan dicatat sebagai piutang modal bisnis.
+          </div>
+        </div>
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 700; color: #991B1B;">Alasan Reopen (Wajib & Diaudit):</label>
+          <textarea id="reopenReason" class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem; height: 80px;" placeholder="Contoh: Koreksi pencatatan faktur supplier tertinggal atau penyesuaian operasional"></textarea>
+        </div>
+      </div>
+      <div style="padding: 1rem 1.25rem; background: #F8FAFC; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button onclick="closeModal('modalReopenPeriod')" class="btn btn-secondary">Batal</button>
+        <button onclick="submitReopenPeriod()" class="btn btn-danger"><i class="fa-solid fa-lock-open"></i> Buka Kembali Periode</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SETTLEMENT VENDOR -->
+  <div class="modal-overlay" id="modalSettlement">
+    <div class="modal-content">
+      <div style="padding: 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-money-bill-transfer" style="color: var(--primary);"></i> Eksekusi Pembayaran Settlement Vendor</h3>
+        <button onclick="closeModal('modalSettlement')" style="border: none; background: none; font-size: 1.2rem; cursor: pointer;">&times;</button>
+      </div>
+      <div style="padding: 1.25rem;">
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700;">Partner Vendor Konsinyasi:</label>
+          <select id="settlementVendorSelect" class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
+            <option value="VND-DZAKI">Dzaki (Jaki) — Konsinyasi</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700;">Batas Maksimal Transfer Bersih (Rp):</label>
+          <input type="number" id="settlementMaxAmount" placeholder="Kosongkan untuk lunasi semua hak vendor" class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;" />
+          <span style="font-size: 0.72rem; color: var(--text-muted);">Biarkan kosong untuk otomatis melunasi seluruh kewajiban yang outstanding.</span>
+        </div>
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700;">Metode Pembayaran:</label>
+          <select id="settlementPaymentMethod" class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
+            <option value="TRANSFER_BCA">Transfer Bank BCA</option>
+            <option value="TRANSFER_MANDIRI">Transfer Mandiri</option>
+            <option value="QRIS">QRIS / E-Wallet</option>
+            <option value="CASH">Tunai (Cash)</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700;">No. Referensi Transfer / Resi:</label>
+          <input type="text" id="settlementBankRef" placeholder="Contoh: TRF-BCA-20261119-01" class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;" />
+        </div>
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700;">Catatan Tambahan:</label>
+          <input type="text" id="settlementNotes" placeholder="Catatan opsional..." class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;" />
+        </div>
+      </div>
+      <div style="padding: 1rem 1.25rem; background: #F8FAFC; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button onclick="closeModal('modalSettlement')" class="btn btn-secondary">Batal</button>
+        <button onclick="submitSettlement()" id="submitSettlementBtn" class="btn btn-primary"><i class="fa-solid fa-check-circle"></i> Eksekusi Pembayaran</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: WITHDRAWAL / PENARIKAN DANA -->
+  <div class="modal-overlay" id="modalWithdraw">
+    <div class="modal-content">
+      <div style="padding: 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-money-bill-transfer" style="color: var(--primary);"></i> Catat Penarikan Kas Fisik (Withdrawal)</h3>
+        <button onclick="closeModal('modalWithdraw')" style="border: none; background: none; font-size: 1.2rem; cursor: pointer;">&times;</button>
+      </div>
+      <div style="padding: 1.25rem;">
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700;">Pos Dana yang Ditarik:</label>
+          <select id="withdrawFundType" class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;">
+            <option value="OWNER_1">Owner 1 (Hafiz)</option>
+            <option value="OWNER_2">Owner 2 (Harits)</option>
+            <option value="EMERGENCY_FUND">Dana Darurat</option>
+            <option value="RETAINED_PROFIT">Keuntungan Ditahan</option>
+          </select>
+        </div>
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700;">Nominal Penarikan (Rp):</label>
+          <input type="number" id="withdrawAmount" value="50000" class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;" />
+        </div>
+        <div style="margin-bottom: 0.75rem;">
+          <label style="font-size: 0.8rem; font-weight: 700;">Catatan / Keperluan Penarikan:</label>
+          <input type="text" id="withdrawNotes" value="Penarikan dividen kas Owner" class="form-control" style="width: 100%; padding: 0.5rem; margin-top: 0.25rem;" />
+        </div>
+      </div>
+      <div style="padding: 1rem 1.25rem; background: #F8FAFC; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button onclick="closeModal('modalWithdraw')" class="btn btn-secondary">Batal</button>
+        <button onclick="submitWithdraw()" class="btn btn-primary"><i class="fa-solid fa-check"></i> Catat Penarikan</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/finance.js"></script>
+</body>
+</html>

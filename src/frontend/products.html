@@ -42,21 +42,18 @@
         <div class="sidebar-item" data-nav="preorder" onclick="window.location.href='preorder.html'">
           <i class="fa-solid fa-clock-rotate-left"></i> Pre-Order
         </div>
-        <div class="sidebar-item" data-nav="purchases" onclick="showPlaceholder('Pembelian Stok Supplier (Phase 3D)')">
+        <div class="sidebar-item" data-nav="purchases" onclick="window.location.href='purchases.html'">
           <i class="fa-solid fa-truck-ramp-box"></i> Pembelian Stok
         </div>
-        <div class="sidebar-item" data-nav="expenses" onclick="showPlaceholder('Pengeluaran Operasional (Phase 3D)')">
+        <div class="sidebar-item" data-nav="expenses" onclick="window.location.href='expenses.html'">
           <i class="fa-solid fa-receipt"></i> Pengeluaran
         </div>
         
         <!-- Owner Only Menus -->
-        <div class="sidebar-item owner-only" data-nav="vendor" onclick="showPlaceholder('Manajemen & Settlement Vendor (Phase 3E)')">
-          <i class="fa-solid fa-handshake"></i> Manajemen Vendor
-        </div>
-        <div class="sidebar-item owner-only" data-nav="finance" onclick="showPlaceholder('Laporan Keuangan & Tutup Buku (Phase 3E)')">
+        <div class="sidebar-item owner-only" data-nav="finance" onclick="window.location.href='finance.html'">
           <i class="fa-solid fa-scale-balanced"></i> Laporan Keuangan
         </div>
-        <div class="sidebar-item owner-only" data-nav="settings" onclick="showPlaceholder('Pengaturan Sistem (Phase 3E)')">
+        <div class="sidebar-item owner-only" data-nav="settings" onclick="window.location.href='settings.html'">
           <i class="fa-solid fa-gear"></i> Pengaturan
         </div>
       </nav>
@@ -478,7 +475,7 @@
     <div style="background: white; border-radius: 12px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; box-shadow: var(--shadow-lg);">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
         <div>
-          <h3 style="margin: 0; font-size: 1.15rem; color: var(--primary);">Tambah Varian Ukuran & Warna</h3>
+          <h3 id="variantModalTitle" style="margin: 0; font-size: 1.15rem; color: var(--primary);">Tambah Varian Ukuran & Warna</h3>
           <span style="font-size: 0.78rem; color: var(--text-muted);" id="variantModalSubtitle">Produk: -</span>
         </div>
         <button onclick="closeVariantModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #94A3B8;">&times;</button>
@@ -489,7 +486,12 @@
         <input type="hidden" id="modalVarId">
 
         <div style="margin-bottom: 1rem;">
-          <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">SKU Varian (Wajib Unik) *</label>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <label style="font-weight: 600; font-size: 0.85rem; margin: 0;">SKU Varian (Wajib Unik) *</label>
+            <button type="button" onclick="generateSuggestedSku()" style="background: none; border: none; color: var(--primary); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-decoration: underline;">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Auto Format SKU
+            </button>
+          </div>
           <input type="text" id="modalVarSku" required placeholder="Contoh: CRC-CLS-BN-W7" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700; text-transform: uppercase;">
           <span style="font-size: 0.74rem; color: #DC2626; display: block; margin-top: 0.2rem;" id="skuErrorText"></span>
         </div>
@@ -556,6 +558,7 @@
               <th style="text-align: center;">Stok Sendiri</th>
               <th style="text-align: center;">Stok Konsinyasi</th>
               <th style="text-align: right;">Total Siap Jual</th>
+              <th style="text-align: center;">Aksi</th>
             </tr>
           </thead>
           <tbody id="detailModalVariantsBody">

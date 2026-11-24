@@ -113,7 +113,7 @@ const CROCS_SCHEMA_V120 = [
       "variant_id", "quantity", "selling_price", "total_order",
       "supplier", "estimated_arrival", "payment_status",
       "procurement_status", "fulfillment_status", "settlement_date",
-      "notes", "created_by"
+      "allocated_hpp", "hpp_status", "notes", "created_by"
     ]
   },
   {
@@ -135,7 +135,14 @@ const CROCS_SCHEMA_V120 = [
     name: "DETAIL_PEMBELIAN",
     headers: [
       "purchase_detail_id", "purchase_id", "variant_id", "quantity",
-      "remaining_qty", "base_unit_cost", "vendor_incentive", "unit_cost", "subtotal"
+      "remaining_qty", "base_unit_cost", "vendor_incentive", "shipping_cost_allocation", "unit_cost", "subtotal"
+    ]
+  },
+  {
+    name: "PEMBAYARAN_PEMBELIAN",
+    headers: [
+      "payment_id", "purchase_id", "payment_date", "amount",
+      "payment_method", "idempotency_key", "notes", "created_by", "created_at"
     ]
   },
   {
@@ -163,7 +170,7 @@ const CROCS_SCHEMA_V120 = [
       "period_id", "month", "year", "period_status",
       "closing_date", "closed_by", "closing_version",
       "total_omzet", "total_hpp", "gross_profit",
-      "operational_expenses", "net_profit",
+      "operational_expenses", "net_profit", "ending_cash_balance",
       "reopen_reason", "reopened_by", "reopened_at", "notes"
     ]
   },

@@ -15,10 +15,26 @@ const DatabaseHelper = (function() {
   const BRAND_SURFACE = "#FFFFFF";
 
   /**
-   * Mendapatkan instance spreadsheet aktif atau berdasarkan Spreadsheet ID terkonfigurasi
+   * Mendapatkan instance spreadsheet aktif atau berdasarkan Spreadsheet ID terkonfigurasi.
+   * Mendukung:
+   * 1. Script Properties: SPREADSHEET_ID (untuk Standalone GAS Script)
+   * 2. Container-bound Script: SpreadsheetApp.getActiveSpreadsheet()
    */
   function getSpreadsheet() {
-    return SpreadsheetApp.getActiveSpreadsheet();
+    if (typeof PropertiesService !== "undefined" && PropertiesService.getScriptProperties) {
+      try {
+        const propId = PropertiesService.getScriptProperties().getProperty("SPREADSHEET_ID");
+        if (propId && propId.trim() !== "") {
+          return SpreadsheetApp.openById(propId.trim());
+        }
+      } catch (e) {
+        // Fallback jika permission atau environment belum diinisialisasi
+      }
+    }
+    const active = SpreadsheetApp.getActiveSpreadsheet();
+    if (active) return active;
+    
+    throw new Error("Spreadsheet database tidak dapat diakses. Pastikan script terikat pada Google Sheets atau konfigurasikan SPREADSHEET_ID pada Script Properties.");
   }
 
   /**

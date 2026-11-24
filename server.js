@@ -138,6 +138,24 @@ global.Utilities = {
   Charset: { UTF_8: 'UTF_8' }
 };
 
+global.ContentService = {
+  MimeType: {
+    JSON: 'application/json',
+    TEXT: 'text/plain'
+  },
+  createTextOutput: function(content) {
+    let currentMimeType = 'text/plain';
+    return {
+      setMimeType: function(type) {
+        currentMimeType = type;
+        return this;
+      },
+      getMimeType: function() { return currentMimeType; },
+      getContent: function() { return content; }
+    };
+  }
+};
+
 // Load Backend Scripts
 const backendDir = path.join(__dirname, 'src', 'backend');
 function loadBackendFile(fileName, globalName) {
@@ -158,6 +176,7 @@ loadBackendFile('ClosingService.gs', 'ClosingService');
 loadBackendFile('ProductService.gs', 'ProductService');
 loadBackendFile('AdminController.gs', 'AdminController');
 loadBackendFile('StorefrontService.gs', 'StorefrontService');
+loadBackendFile('WebAppRouter.gs', 'WebAppRouter');
 
 // Initialize Database & Default Accounts
 initializeCrocsCircleDatabase();
@@ -178,105 +197,13 @@ try {
   }
 } catch (e) {}
 
-// Seed Sample Real Stock & Transaction Data for Realistic Dashboard Experience
+// Load Real CrocsCircle Excel Data Seeder
+loadBackendFile('SeedRealCrocsData.js', 'seedRealCrocsCircleData');
 try {
-  // Master Produk & Varian (Lengkap dengan is_published & catalog_price untuk Etalase Storefront)
-  DatabaseHelper.insertRow("MASTER_PRODUK", {
-    product_id: "PRD-CLS-01",
-    product_name: "Crocs Classic Clog - Bone",
-    category_id: "CAT-CLOG",
-    model: "Classic Clog",
-    sales_type: "READY_STOCK",
-    image_url: "https://images.unsplash.com/photo-1560769629-975ec94e6a86",
-    is_active: true,
-    is_published: true
-  });
-  DatabaseHelper.insertRow("MASTER_PRODUK", {
-    product_id: "PRD-ECH-01",
-    product_name: "Crocs Echo Clog - Stucco",
-    category_id: "CAT-CLOG",
-    model: "Echo Clog",
-    sales_type: "READY_STOCK",
-    image_url: "https://images.unsplash.com/photo-1542291026-7eec264c27ff",
-    is_active: true,
-    is_published: true
-  });
-  DatabaseHelper.insertRow("MASTER_PRODUK", {
-    product_id: "PRD-MGC-01",
-    product_name: "Crocs Mega Crush Clog - Black",
-    category_id: "CAT-CLOG",
-    model: "Mega Crush",
-    sales_type: "READY_STOCK",
-    image_url: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a",
-    is_active: true,
-    is_published: true
-  });
-
-  DatabaseHelper.insertRow("VARIAN_PRODUK", {
-    variant_id: "VAR-CLS-W7",
-    product_id: "PRD-CLS-01",
-    size: "W7",
-    sku: "CRC-CLS-BN-W7",
-    color: "Bone",
-    catalog_price: 999000,
-    reference_hpp: 550000,
-    is_active: true
-  });
-  DatabaseHelper.insertRow("VARIAN_PRODUK", {
-    variant_id: "VAR-CLS-W8",
-    product_id: "PRD-CLS-01",
-    size: "W8",
-    sku: "CRC-CLS-BN-W8",
-    color: "Bone",
-    catalog_price: 999000,
-    reference_hpp: 550000,
-    is_active: true
-  });
-  DatabaseHelper.insertRow("VARIAN_PRODUK", {
-    variant_id: "VAR-ECH-M9",
-    product_id: "PRD-ECH-01",
-    size: "M9",
-    sku: "CRC-ECH-ST-M9",
-    color: "Stucco",
-    catalog_price: 1399000,
-    reference_hpp: 820000,
-    is_active: true
-  });
-  DatabaseHelper.insertRow("VARIAN_PRODUK", {
-    variant_id: "VAR-MGC-W7",
-    product_id: "PRD-MGC-01",
-    size: "W7",
-    sku: "CRC-MGC-BK-W7",
-    color: "Black",
-    catalog_price: 1599000,
-    reference_hpp: 900000,
-    is_active: true
-  });
-
-  // Stock Batches
-  InventoryService.receiveOwnedStockBatch("PUR-01", "VAR-CLS-W7", 10, 550000, 0, "Batch Bone W7", "SYSTEM");
-  InventoryService.receiveOwnedStockBatch("PUR-02", "VAR-CLS-W8", 2, 550000, 0, "Batch Bone W8", "SYSTEM"); // Low stock
-  InventoryService.receiveOwnedStockBatch("PUR-03", "VAR-ECH-M9", 6, 820000, 0, "Batch Echo M9", "SYSTEM");
-  InventoryService.receiveConsignmentStock("VND-DZAKI", "VAR-MGC-W7", 5, "Konsinyasi Dzaki Mega Crush", "SYSTEM");
-
-  // Sample Sales
-  SalesService.createSale({
-    transaction_date: new Date(),
-    customer_name: "Budi Santoso",
-    sales_channel: "WHATSAPP",
-    payment_method: "TRANSFER_BCA",
-    items: [{ variant_id: "VAR-CLS-W7", item_ownership: "OWNED", quantity: 1, actual_price: 999000 }]
-  });
-
-  // Sample Pre-Order
-  POService.createPreOrder({
-    order_date: new Date(),
-    customer_name: "Jessica Iskandar",
-    customer_contact: "0812345678",
-    items: [{ variant_id: "VAR-ECH-M9", quantity: 1, selling_price: 1399000 }]
-  });
-
-} catch (e) {}
+  seedRealCrocsCircleData();
+} catch (e) {
+  console.error("Error seeding real data:", e);
+}
 
 // Static File Mime Types
 const MIME_TYPES = {
@@ -296,9 +223,9 @@ const server = http.createServer((req, res) => {
   const pathname = parsedUrl.pathname;
 
   // -------------------------------------------------------------
-  // API ROUTING
+  // API ROUTING & GAS GATEWAY
   // -------------------------------------------------------------
-  if (pathname.startsWith('/api/')) {
+  if (pathname.startsWith('/api/') || pathname === '/exec') {
     res.setHeader('Content-Type', 'application/json; charset=UTF-8');
 
     // Helper: Parse POST Body
@@ -326,6 +253,34 @@ const server = http.createServer((req, res) => {
         return req.headers['x-session-token'].trim();
       }
       return parsedUrl.query.token || null;
+    }
+
+    // 0. Google Apps Script Web App Gateway (/exec & /api/gas)
+    if (pathname === '/exec' || pathname === '/api/gas') {
+      if (req.method === 'GET') {
+        const gasEvent = {
+          parameter: parsedUrl.query,
+          pathInfo: parsedUrl.query.action || ""
+        };
+        const output = WebAppRouter.handleRequest('GET', gasEvent);
+        const json = JSON.parse(output.getContent());
+        res.writeHead(json.statusCode || (json.success ? 200 : 400), { 'Content-Type': 'application/json' });
+        res.end(output.getContent());
+        return;
+      }
+      if (req.method === 'POST') {
+        getRequestBody(data => {
+          const gasEvent = {
+            parameter: parsedUrl.query,
+            postData: { contents: JSON.stringify(data) }
+          };
+          const output = WebAppRouter.handleRequest('POST', gasEvent);
+          const json = JSON.parse(output.getContent());
+          res.writeHead(json.statusCode || (json.success ? 200 : 400), { 'Content-Type': 'application/json' });
+          res.end(output.getContent());
+        });
+        return;
+      }
     }
 
     // 1. POST /api/login
@@ -878,6 +833,638 @@ const server = http.createServer((req, res) => {
       return;
     }
 
+
+    // 31. POST /api/purchases/create (Buat Faktur Pembelian Stok)
+    if (pathname === '/api/purchases/create' && req.method === 'POST') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      getRequestBody(data => {
+        try {
+          data.created_by = session.user.username;
+          const result = InventoryService.createPurchaseInvoice(data);
+          res.writeHead(200);
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+      });
+      return;
+    }
+
+    // 32. POST /api/purchases/receive (Terima Pengiriman Fisik Barang)
+    if (pathname === '/api/purchases/receive' && req.method === 'POST') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      getRequestBody(data => {
+        try {
+          data.created_by = session.user.username;
+          const result = InventoryService.receivePurchaseShipment(data);
+          res.writeHead(200);
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+      });
+      return;
+    }
+
+    // 32b. POST /api/purchases/payment (Perbarui Status Pembayaran Faktur)
+    if (pathname === '/api/purchases/payment' && req.method === 'POST') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      getRequestBody(data => {
+        try {
+          const result = InventoryService.updatePurchasePaymentStatus(
+            data.purchase_id,
+            data.payment_status,
+            data.notes,
+            session.user.username
+          );
+          res.writeHead(200);
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+      });
+      return;
+    }
+
+    // 32c. POST /api/purchases/payment-record (Catat Pembayaran Riil Bertahap Faktur Supplier)
+    if (pathname === '/api/purchases/payment-record' && req.method === 'POST') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      getRequestBody(data => {
+        try {
+          data.created_by = session.user.username;
+          const result = InventoryService.recordPurchasePayment(data);
+          res.writeHead(200);
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+      });
+      return;
+    }
+
+    // 32d. GET /api/purchases/payments (Riwayat Pembayaran per Faktur)
+    if (pathname === '/api/purchases/payments' && req.method === 'GET') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      try {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const purchaseId = urlObj.searchParams.get('purchase_id');
+        const result = InventoryService.getPurchasePayments(purchaseId);
+        res.writeHead(200);
+        res.end(JSON.stringify(result));
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    // 32e. GET /api/purchases/detail (Detail Faktur Pembelian + Item + Riwayat Terima)
+    if (pathname === '/api/purchases/detail' && req.method === 'GET') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      try {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const purchaseId = urlObj.searchParams.get('purchase_id');
+        const result = InventoryService.getPurchaseDetail(purchaseId);
+        res.writeHead(result.success ? 200 : 400);
+        res.end(JSON.stringify(result));
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    // 33. GET /api/purchases/list (Daftar Faktur Pembelian)
+    if (pathname === '/api/purchases/list' && req.method === 'GET') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      try {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const filters = {
+          payment_status: urlObj.searchParams.get('payment_status') || undefined,
+          receiving_status: urlObj.searchParams.get('receiving_status') || undefined,
+          vendor_id: urlObj.searchParams.get('vendor_id') || undefined,
+          date_from: urlObj.searchParams.get('date_from') || undefined,
+          date_to: urlObj.searchParams.get('date_to') || undefined
+        };
+        // Remove undefined keys
+        Object.keys(filters).forEach(k => { if (!filters[k]) delete filters[k]; });
+        const result = InventoryService.getPurchasesList(filters);
+        res.writeHead(200);
+        res.end(JSON.stringify(result));
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    // 34. POST /api/expenses/create (Catat Pengeluaran Operasional)
+    if (pathname === '/api/expenses/create' && req.method === 'POST') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      getRequestBody(data => {
+        try {
+          data.created_by = session.user.username;
+          const result = FinancialService.recordOperationalExpense(data);
+          res.writeHead(200);
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+      });
+      return;
+    }
+
+    // 35. GET /api/expenses/list (Daftar Pengeluaran Operasional)
+    if (pathname === '/api/expenses/list' && req.method === 'GET') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      try {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const filters = {
+          month: urlObj.searchParams.get('month') || undefined,
+          year: urlObj.searchParams.get('year') || undefined,
+          category: urlObj.searchParams.get('category') || undefined,
+          payment_method: urlObj.searchParams.get('payment_method') || undefined,
+          date_from: urlObj.searchParams.get('date_from') || undefined,
+          date_to: urlObj.searchParams.get('date_to') || undefined
+        };
+        Object.keys(filters).forEach(k => { if (!filters[k]) delete filters[k]; });
+        const result = FinancialService.getExpensesList(filters);
+        res.writeHead(200);
+        res.end(JSON.stringify(result));
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    // 36. GET /api/reports/income-statement (Laporan Laba Rugi Bulanan, Owner Only)
+    if (pathname === '/api/reports/income-statement' && req.method === 'GET') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      if (session.user.role !== 'OWNER') {
+        res.writeHead(403);
+        res.end(JSON.stringify({ success: false, error: "Akses ditolak: Hanya Owner yang dapat mengakses Laporan Laba Rugi." }));
+        return;
+      }
+      try {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const now = new Date();
+        const month = parseInt(urlObj.searchParams.get('month') || (now.getMonth() + 1), 10);
+        const year = parseInt(urlObj.searchParams.get('year') || now.getFullYear(), 10);
+        const result = FinancialService.calculateMonthlyIncomeStatement(month, year);
+        res.writeHead(200);
+        res.end(JSON.stringify({ success: true, report: result }));
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    // 37. GET /api/reports/cash-flow (Laporan Arus Kas Bulanan, Owner Only)
+    if (pathname === '/api/reports/cash-flow' && req.method === 'GET') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      if (session.user.role !== 'OWNER') {
+        res.writeHead(403);
+        res.end(JSON.stringify({ success: false, error: "Akses ditolak: Hanya Owner yang dapat mengakses Laporan Arus Kas." }));
+        return;
+      }
+      try {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const now = new Date();
+        const month = parseInt(urlObj.searchParams.get('month') || (now.getMonth() + 1), 10);
+        const year = parseInt(urlObj.searchParams.get('year') || now.getFullYear(), 10);
+        const result = FinancialService.getMonthlyCashFlowStatement(month, year);
+        res.writeHead(200);
+        res.end(JSON.stringify({ success: true, report: result }));
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    // 38. GET /api/reports/vendor-reconciliation (Laporan Rekonsiliasi Vendor, Owner Only)
+    if (pathname === '/api/reports/vendor-reconciliation' && req.method === 'GET') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      if (session.user.role !== 'OWNER') {
+        res.writeHead(403);
+        res.end(JSON.stringify({ success: false, error: "Akses ditolak: Hanya Owner yang dapat mengakses Rekonsiliasi Vendor." }));
+        return;
+      }
+      try {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const vendorId = urlObj.searchParams.get('vendor_id');
+        if (!vendorId) {
+          // Jika vendor_id tidak diberikan, kembalikan daftar seluruh vendor aktif beserta ringkasannya
+          const vendors = VendorService.getVendorList("ACTIVE");
+          const summaries = vendors.map(v => VendorService.getVendorDashboardSummary(v.vendor_id));
+          res.writeHead(200);
+          res.end(JSON.stringify({ success: true, count: summaries.length, vendors: summaries }));
+          return;
+        }
+        const result = VendorService.getVendorDashboardSummary(vendorId);
+        res.writeHead(200);
+        res.end(JSON.stringify({ success: true, report: result }));
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    // 39. POST /api/finance/opening-cash (Pencatatan & Verifikasi Saldo Awal Kas, Owner Only)
+    if (pathname === '/api/finance/opening-cash' && req.method === 'POST') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      if (session.user.role !== 'OWNER') {
+        res.writeHead(403);
+        res.end(JSON.stringify({ success: false, error: "Akses ditolak: Hanya Owner yang dapat memverifikasi saldo awal kas." }));
+        return;
+      }
+      getRequestBody(data => {
+        try {
+          const result = FinancialService.recordOpeningCashBalance(data, token);
+          res.writeHead(200);
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+      });
+      return;
+    }
+
+    // 40. GET /api/finance/opening-cash (Query Saldo Awal Kas, Owner Only)
+    if (pathname === '/api/finance/opening-cash' && req.method === 'GET') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      if (session.user.role !== 'OWNER') {
+        res.writeHead(403);
+        res.end(JSON.stringify({ success: false, error: "Akses ditolak: Hanya Owner yang dapat melihat saldo awal kas." }));
+        return;
+      }
+      try {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const targetDate = urlObj.searchParams.get('date') || '2026-10-01';
+        const result = FinancialService.getOpeningCashBalance(targetDate);
+        res.writeHead(200);
+        res.end(JSON.stringify({ success: true, opening_balance: result }));
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    // 41. GET /api/closing/preview (Preview Laporan & Alokasi Laba Sebelum Tutup Buku, Owner Only)
+    if (pathname === '/api/closing/preview' && req.method === 'GET') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      if (session.user.role !== 'OWNER') {
+        res.writeHead(403);
+        res.end(JSON.stringify({ success: false, error: "Akses ditolak: Hanya Owner yang dapat mengakses preview tutup buku." }));
+        return;
+      }
+      try {
+        const urlObj = new URL(req.url, 'http://localhost');
+        const now = new Date();
+        const month = parseInt(urlObj.searchParams.get('month') || (now.getMonth() + 1), 10);
+        const year = parseInt(urlObj.searchParams.get('year') || now.getFullYear(), 10);
+        const result = ClosingService.previewMonthlyReport(month, year);
+        res.writeHead(200);
+        res.end(JSON.stringify({ success: true, preview: result }));
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    // 42. POST /api/closing/close-period (Eksekusi Tutup Buku Bulanan, Owner Only)
+    if (pathname === '/api/closing/close-period' && req.method === 'POST') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      if (session.user.role !== 'OWNER') {
+        res.writeHead(403);
+        res.end(JSON.stringify({ success: false, error: "Akses ditolak: Hanya Owner yang berwenang menutup buku bulanan." }));
+        return;
+      }
+      getRequestBody(data => {
+        try {
+          const result = ClosingService.closePeriod(
+            data.month,
+            data.year,
+            token,
+            data.notes,
+            data.custom_percentages
+          );
+          res.writeHead(200);
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+      });
+      return;
+    }
+
+    // 43. POST /api/closing/reopen-period (Membuka Kembali Periode yang Ditutup, Owner Only)
+    if (pathname === '/api/closing/reopen-period' && req.method === 'POST') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      if (session.user.role !== 'OWNER') {
+        res.writeHead(403);
+        res.end(JSON.stringify({ success: false, error: "Akses ditolak: Hanya Owner yang berwenang membuka kembali periode buku." }));
+        return;
+      }
+      getRequestBody(data => {
+        try {
+          const result = ClosingService.reopenPeriod(
+            data.period_id,
+            token,
+            data.reason
+          );
+          res.writeHead(200);
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+      });
+      return;
+    }
+
+    // 44. GET /api/closing/fund-balances (Saldo Akumulatif 4 Pos Dana, Owner Only)
+    if (pathname === '/api/closing/fund-balances' && req.method === 'GET') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      if (session.user.role !== 'OWNER') {
+        res.writeHead(403);
+        res.end(JSON.stringify({ success: false, error: "Akses ditolak: Hanya Owner yang dapat mengakses saldo pos dana." }));
+        return;
+      }
+      try {
+        const result = ClosingService.getFundBalances();
+        res.writeHead(200);
+        res.end(JSON.stringify({ success: true, fund_balances: result }));
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    // 45. POST /api/closing/fund-withdrawal (Pencatatan Penarikan Kas Fisik Owner/Darurat, Owner Only)
+    if (pathname === '/api/closing/fund-withdrawal' && req.method === 'POST') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      if (session.user.role !== 'OWNER') {
+        res.writeHead(403);
+        res.end(JSON.stringify({ success: false, error: "Akses ditolak: Hanya Owner yang berwenang mencatat penarikan dana." }));
+        return;
+      }
+      getRequestBody(data => {
+        try {
+          const result = ClosingService.recordFundWithdrawal(
+            data.fund_type,
+            data.amount,
+            token,
+            data.notes
+          );
+          res.writeHead(200);
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+      });
+      return;
+    }
+
+    // 46. POST /api/vendors/settlement (Eksekusi Pembayaran Kewajiban Konsinyasi Vendor, Owner Only)
+    if (pathname === '/api/vendors/settlement' && req.method === 'POST') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      if (session.user.role !== 'OWNER') {
+        res.writeHead(403);
+        res.end(JSON.stringify({ success: false, error: "Akses ditolak: Hanya Owner yang berwenang mengeksekusi settlement vendor." }));
+        return;
+      }
+      getRequestBody(data => {
+        try {
+          const result = VendorService.executeSettlement(data, token);
+          res.writeHead(200);
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+      });
+      return;
+    }
+
+    // 47. GET /api/settings (Ambil Konfigurasi Pengaturan & Daftar Pengguna, Owner Only)
+    if (pathname === '/api/settings' && req.method === 'GET') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      if (session.user.role !== 'OWNER') {
+        res.writeHead(403);
+        res.end(JSON.stringify({ success: false, error: "Akses ditolak: Hanya Owner yang dapat mengakses Pengaturan Sistem." }));
+        return;
+      }
+      try {
+        const rows = DatabaseHelper.getAllRows("PENGATURAN");
+        const settingsMap = {};
+        rows.forEach(r => {
+          if (r.setting_key) settingsMap[r.setting_key] = r.setting_value;
+        });
+        const users = DatabaseHelper.getAllRows("USERS").map(u => ({
+          user_id: u.user_id,
+          username: u.username,
+          full_name: u.full_name,
+          role: u.role,
+          status: u.status
+        }));
+        res.writeHead(200);
+        res.end(JSON.stringify({ success: true, settings: settingsMap, users: users }));
+      } catch (err) {
+        res.writeHead(400);
+        res.end(JSON.stringify({ success: false, error: err.message }));
+      }
+      return;
+    }
+
+    // 48. POST /api/settings (Update Konfigurasi Pengaturan Sistem, Owner Only)
+    if (pathname === '/api/settings' && req.method === 'POST') {
+      const token = extractToken();
+      const session = AuthService.validateSession(token);
+      if (!session.valid) {
+        res.writeHead(401);
+        res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+        return;
+      }
+      if (session.user.role !== 'OWNER') {
+        res.writeHead(403);
+        res.end(JSON.stringify({ success: false, error: "Akses ditolak: Hanya Owner yang dapat mengubah Pengaturan Sistem." }));
+        return;
+      }
+      getRequestBody(data => {
+        try {
+          const updates = data.settings || {};
+          const now = new Date();
+          DatabaseHelper.withLock(30000, function() {
+            Object.keys(updates).forEach(key => {
+              const existing = DatabaseHelper.getRowByPk("PENGATURAN", "setting_key", key);
+              if (existing) {
+                DatabaseHelper.updateRowByPk("PENGATURAN", "setting_key", key, {
+                  setting_value: String(updates[key]),
+                  updated_by: session.user.username,
+                  updated_at: now
+                });
+              } else {
+                DatabaseHelper.insertRow("PENGATURAN", {
+                  setting_key: key,
+                  setting_value: String(updates[key]),
+                  description: "Custom setting",
+                  updated_by: session.user.username,
+                  updated_at: now
+                });
+              }
+            });
+          });
+          res.writeHead(200);
+          res.end(JSON.stringify({ success: true, message: "Pengaturan berhasil diperbarui." }));
+        } catch (err) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, error: err.message }));
+        }
+      });
+      return;
+    }
+
     // API Not Found
     res.writeHead(404);
     res.end(JSON.stringify({ success: false, error: "API endpoint not found" }));
@@ -925,8 +1512,8 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`🔐 Admin Login Screen  : http://localhost:${PORT}/login.html`);
   console.log(`📊 Admin Portal        : http://localhost:${PORT}/admin.html`);
   console.log(`----------------------------------------------------`);
-  console.log(`👑 Owner 1 Kredensial  : hafiz   / HafizOwner2026!`);
-  console.log(`👑 Owner 2 Kredensial  : harits  / HaritsOwner2026!`);
-  console.log(`👤 Admin Kredensial    : admin1  / AdminOperasional2026!`);
+  console.log(`👤 Owner 1 Account     : hafiz   (Password configured securely)`);
+  console.log(`👤 Owner 2 Account     : harits  (Password configured securely)`);
+  console.log(`👤 Admin Account       : admin1  (Password configured securely)`);
   console.log(`====================================================`);
 });

@@ -42,21 +42,18 @@
         <div class="sidebar-item" data-nav="preorder" onclick="window.location.href='preorder.html'">
           <i class="fa-solid fa-clock-rotate-left"></i> Pre-Order
         </div>
-        <div class="sidebar-item" data-nav="purchases" onclick="showPlaceholder('Pembelian Stok Supplier (Phase 3D)')">
+        <div class="sidebar-item" data-nav="purchases" onclick="window.location.href='purchases.html'">
           <i class="fa-solid fa-truck-ramp-box"></i> Pembelian Stok
         </div>
-        <div class="sidebar-item" data-nav="expenses" onclick="showPlaceholder('Pengeluaran Operasional (Phase 3D)')">
+        <div class="sidebar-item" data-nav="expenses" onclick="window.location.href='expenses.html'">
           <i class="fa-solid fa-receipt"></i> Pengeluaran
         </div>
         
         <!-- Owner Only Menus -->
-        <div class="sidebar-item owner-only" data-nav="vendor" onclick="showPlaceholder('Manajemen & Settlement Vendor (Phase 3E)')">
-          <i class="fa-solid fa-handshake"></i> Manajemen Vendor
-        </div>
-        <div class="sidebar-item owner-only" data-nav="finance" onclick="showPlaceholder('Laporan Keuangan & Tutup Buku (Phase 3E)')">
+        <div class="sidebar-item owner-only" data-nav="finance" onclick="window.location.href='finance.html'">
           <i class="fa-solid fa-scale-balanced"></i> Laporan Keuangan
         </div>
-        <div class="sidebar-item owner-only" data-nav="settings" onclick="showPlaceholder('Pengaturan Sistem (Phase 3E)')">
+        <div class="sidebar-item owner-only" data-nav="settings" onclick="window.location.href='settings.html'">
           <i class="fa-solid fa-gear"></i> Pengaturan
         </div>
       </nav>
@@ -152,10 +149,10 @@
           </div>
 
           <div class="kpi-card" style="border-top: 4px solid #D97706; background: #FFFBEB;">
-            <div class="kpi-label" style="color: #92400E; font-weight: 700;">Restricted Cash (Kewajiban Vendor)</div>
+            <div class="kpi-label" style="color: #92400E; font-weight: 700;">Kewajiban Setoran Vendor Berjalan</div>
             <div class="kpi-value" id="kpiVendorPayables" style="color: #B45309;">-</div>
             <div class="kpi-sub" style="color: #92400E; font-size: 0.74rem; line-height: 1.3;">
-              Kewajiban titip jual yang wajib disisihkan & dibayar ke vendor (<strong>BUKAN</strong> kas bebas CrocsCircle)
+              Kewajiban lancar titip jual yang harus disetor ke vendor (<strong>BUKAN</strong> kas bebas CrocsCircle)
             </div>
           </div>
         </div>
