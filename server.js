@@ -230,8 +230,30 @@ const server = http.createServer((req, res) => {
   if (pathname.startsWith('/api/') || pathname === '/exec') {
     res.setHeader('Content-Type', 'application/json; charset=UTF-8');
 
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Session-Token');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(200);
+      res.end();
+      return;
+    }
+
     // Helper: Parse POST Body
     function getRequestBody(cb) {
+      if (req.body && typeof req.body === 'object') {
+        cb(req.body);
+        return;
+      }
+      if (req.body && typeof req.body === 'string') {
+        try {
+          cb(JSON.parse(req.body));
+        } catch (e) {
+          cb({});
+        }
+        return;
+      }
       let body = '';
       req.on('data', chunk => { body += chunk.toString(); });
       req.on('end', () => {
@@ -1611,16 +1633,20 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`====================================================`);
-  console.log(`🚀 CrocsCircle.ID Full Web Platform & API is RUNNING!`);
-  console.log(`----------------------------------------------------`);
-  console.log(`🛒 Customer Storefront : http://localhost:${PORT}/index.html`);
-  console.log(`🔐 Admin Login Screen  : http://localhost:${PORT}/login.html`);
-  console.log(`📊 Admin Portal        : http://localhost:${PORT}/admin.html`);
-  console.log(`----------------------------------------------------`);
-  console.log(`👤 Owner 1 Account     : hafiz   (Password configured securely)`);
-  console.log(`👤 Owner 2 Account     : harits  (Password configured securely)`);
-  console.log(`👤 Admin Account       : admin1  (Password configured securely)`);
-  console.log(`====================================================`);
-});
+if (require.main === module) {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`====================================================`);
+    console.log(`🚀 CrocsCircle.ID Full Web Platform & API is RUNNING!`);
+    console.log(`----------------------------------------------------`);
+    console.log(`🛒 Customer Storefront : http://localhost:${PORT}/index.html`);
+    console.log(`🔐 Admin Login Screen  : http://localhost:${PORT}/login.html`);
+    console.log(`📊 Admin Portal        : http://localhost:${PORT}/admin.html`);
+    console.log(`----------------------------------------------------`);
+    console.log(`👤 Owner 1 Account     : hafiz   (Password configured securely)`);
+    console.log(`👤 Owner 2 Account     : harits  (Password configured securely)`);
+    console.log(`👤 Admin Account       : admin1  (Password configured securely)`);
+    console.log(`====================================================`);
+  });
+}
+
+module.exports = server;
