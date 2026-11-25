@@ -117,8 +117,10 @@ async function loadCatalog() {
       showEmptyState("Gagal memuat katalog produk dari server.");
     }
   } catch (err) {
-    console.error("Gagal terhubung ke API katalog:", err);
-    showEmptyState("Tidak dapat terhubung ke server. Pastikan koneksi aktif.");
+    console.error("Gagal memuat katalog:", err);
+    showEmptyState(err.message && !err.message.includes("fetch")
+      ? "Terjadi kendala saat menampilkan produk: " + err.message
+      : "Tidak dapat terhubung ke server. Pastikan koneksi aktif.");
   }
 }
 
@@ -226,6 +228,10 @@ function renderProducts() {
 
     const placeholderSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'><rect width='400' height='400' fill='%23F8FAFC'/><circle cx='200' cy='170' r='55' fill='%23E2E8F0'/><text x='50%25' y='178' dominant-baseline='middle' text-anchor='middle' fill='%2337B89D' font-family='sans-serif' font-size='32' font-weight='900'>C</text><text x='50%25' y='270' dominant-baseline='middle' text-anchor='middle' fill='%23173B35' font-family='sans-serif' font-size='16' font-weight='700'>CrocsCircle.ID</text><text x='50%25' y='295' dominant-baseline='middle' text-anchor='middle' fill='%2394A3B8' font-family='sans-serif' font-size='12'>Foto Produk Segera Hadir</text></svg>";
     const coverUrl = getPrimaryImageUrl(p.image_url) || placeholderSvg;
+
+    const availableSizes = (p.variants || [])
+      .map(v => v.size)
+      .filter((s, idx, arr) => s && s !== "-" && arr.indexOf(s) === idx);
 
     return `
       <div class="product-card">
