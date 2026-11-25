@@ -454,9 +454,10 @@ window.renderImagePreviews = function() {
 
   grid.innerHTML = PROD_STATE.modalImages.map((img, idx) => {
     const isCover = idx === 0;
+    const previewSrc = window.formatProxyImageUrl(img.data);
     return `
       <div style="position: relative; width: 90px; height: 90px; border-radius: 8px; border: 2px solid ${isCover ? 'var(--primary)' : 'var(--border)'}; overflow: hidden; background: #F1F5F9; box-shadow: var(--shadow-sm);">
-        <img src="${img.data}" alt="${img.name || 'Foto'}" style="width: 100%; height: 100%; object-fit: cover;">
+        <img src="${previewSrc}" alt="${img.name || 'Foto'}" style="width: 100%; height: 100%; object-fit: cover;">
         ${isCover ? `
           <span style="position: absolute; top: 3px; left: 3px; background: var(--primary); color: white; font-size: 0.62rem; font-weight: 700; padding: 1px 5px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
             ⭐ Sampul
@@ -656,6 +657,13 @@ window.syncSuggestedModelAndSku = function() {
   updateInitialVariantPreview();
 };
 
+window.syncModalPriceToInit = function() {
+  const pVal = document.getElementById("modalProductPrice")?.value || "";
+  const initPrice = document.getElementById("initVarPrice");
+  if (initPrice) initPrice.value = pVal;
+  updateInitialVariantPreview();
+};
+
 window.updateInitialVariantPreview = function() {
   const textEl = document.getElementById("initVariantPreviewText");
   if (!textEl) return;
@@ -684,6 +692,9 @@ window.openAddProductModal = function() {
   document.getElementById("modalProductName").value = "";
   document.getElementById("modalProductModel").value = "";
   document.getElementById("modalProductDesc").value = "";
+  const priceInput = document.getElementById("modalProductPrice");
+  if (priceInput) priceInput.value = "280000";
+  PROD_STATE.currentEditProduct = null;
   
   // Reset images
   PROD_STATE.modalImages = [];
@@ -719,11 +730,18 @@ window.editProduct = async function(productId) {
     if (!data.success) throw new Error(data.error);
 
     const p = data.data.product;
+    PROD_STATE.currentEditProduct = p;
+
     document.getElementById("productModalTitle").innerText = "Edit Produk Etalase";
     document.getElementById("modalProductId").value = p.product_id;
     document.getElementById("modalProductName").value = p.product_name;
     document.getElementById("modalProductModel").value = p.model || "";
     
+    // Set price from variants or product
+    const prodPrice = (p.variants && p.variants.length > 0) ? p.variants[0].catalog_price : (p.min_price || "");
+    const priceInput = document.getElementById("modalProductPrice");
+    if (priceInput) priceInput.value = prodPrice || "";
+
     // Set category
     const catSelect = document.getElementById("modalProductCategory");
     if (catSelect) {
@@ -767,15 +785,29 @@ window.handleProductFormSubmit = async function(event) {
   }
 
   try {
-    // 1. Upload local images to server
-    const finalImageUrls = await uploadModalImagesToServer();
-    const finalImageUrlStr = finalImageUrls.length === 1 ? finalImageUrls[0] : (finalImageUrls.length > 1 ? JSON.stringify(finalImageUrls) : "");
+    // 1. Upload local images to server or retain existing
+    let finalImageUrlStr = "";
+    if (PROD_STATE.modalImages.length > 0) {
+      const finalImageUrls = await uploadModalImagesToServer();
+      // Clean up proxy prefix if present
+      const cleanUrls = finalImageUrls.map(u => {
+        if (typeof u === 'string' && u.includes('/api/image-proxy?url=')) {
+          return decodeURIComponent(u.split('/api/image-proxy?url=')[1]);
+        }
+        return u;
+      });
+      finalImageUrlStr = cleanUrls.length === 1 ? cleanUrls[0] : (cleanUrls.length > 1 ? JSON.stringify(cleanUrls) : "");
+    } else if (PROD_STATE.currentEditProduct && PROD_STATE.currentEditProduct.image_url) {
+      // Retain existing image if user didn't remove it
+      finalImageUrlStr = PROD_STATE.currentEditProduct.image_url;
+    }
 
     const productId = document.getElementById("modalProductId").value;
     const isNew = !productId;
     const productName = document.getElementById("modalProductName").value.trim();
     const model = document.getElementById("modalProductModel").value.trim();
     const categoryId = document.getElementById("modalProductCategory").value;
+    const editedPrice = Number(document.getElementById("modalProductPrice")?.value) || 0;
 
     const productData = {
       product_id: productId || undefined,
@@ -802,11 +834,34 @@ window.handleProductFormSubmit = async function(event) {
 
     const savedProductId = result.product_id || (result.product && result.product.product_id) || productId;
 
+    // 2b. If editing existing product and user changed the price, update all variants of this product!
+    if (!isNew && editedPrice > 0 && PROD_STATE.currentEditProduct && PROD_STATE.currentEditProduct.variants) {
+      for (const v of PROD_STATE.currentEditProduct.variants) {
+        if (v.variant_id && Number(v.catalog_price) !== editedPrice) {
+          try {
+            await fetch('/api/variants', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${PROD_STATE.token}`
+              },
+              body: JSON.stringify({
+                variant_id: v.variant_id,
+                catalog_price: editedPrice
+              })
+            });
+          } catch (errVar) {
+            console.warn("Gagal update harga varian:", errVar);
+          }
+        }
+      }
+    }
+
     // 3. If new product and toggleInitialVariants is checked, batch create initial variants!
     const chkInit = document.getElementById("toggleInitialVariants");
     if (isNew && chkInit && chkInit.checked && PROD_STATE.selectedInitSizes.size > 0) {
       const color = (document.getElementById("initVarColor").value || "Black").trim();
-      const price = Number(document.getElementById("initVarPrice").value) || 0;
+      const price = Number(document.getElementById("initVarPrice")?.value) || editedPrice || 0;
       const refHpp = Number(document.getElementById("initVarRefHpp")?.value) || 0;
 
       const modelCode = (model || productName).substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');

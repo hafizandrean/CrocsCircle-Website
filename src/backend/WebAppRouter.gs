@@ -380,6 +380,12 @@ const WebAppRouter = (function() {
           const saveProdRes = AdminController.saveProduct(token, body);
           return formatResponse(saveProdRes, saveProdRes.success ? 200 : (saveProdRes.statusCode || 400));
 
+        case "products/delete":
+        case "deleteProduct":
+          const delProdId = params.id || params.product_id || body.id || body.product_id;
+          const delProdRes = AdminController.deleteProduct(token, delProdId);
+          return formatResponse(delProdRes, delProdRes.success ? 200 : (delProdRes.statusCode || 400));
+
         case "variants/save":
         case "saveVariant":
           const saveVarRes = AdminController.saveVariant(token, body);

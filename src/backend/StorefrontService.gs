@@ -65,40 +65,53 @@ const StorefrontService = (function() {
 
     allProducts.forEach(prod => {
       const prodVariants = allVariants.filter(v => String(v.product_id) === String(prod.product_id));
-      if (prodVariants.length === 0) return; // Lewatkan produk tanpa varian
 
       let prodTotalAvailable = 0;
       let minCatalogPrice = Infinity;
       let maxCatalogPrice = 0;
 
-      const sanitizedVariants = prodVariants.map(v => {
-        const stk = stockMap[v.variant_id] || {};
-        const ownedPhys = Number(stk.owned_physical_stock) || 0;
-        const ownedRes = Number(stk.owned_reserved_stock) || 0;
-        const ownedAvail = Math.max(0, ownedPhys - ownedRes);
+      let sanitizedVariants = [];
+      if (prodVariants.length > 0) {
+        sanitizedVariants = prodVariants.map(v => {
+          const stk = stockMap[v.variant_id] || {};
+          const ownedPhys = Number(stk.owned_physical_stock) || 0;
+          const ownedRes = Number(stk.owned_reserved_stock) || 0;
+          const ownedAvail = Math.max(0, ownedPhys - ownedRes);
 
-        const consPhys = Number(stk.consignment_physical_stock) || 0;
-        const consRes = Number(stk.consignment_reserved_stock) || 0;
-        const consAvail = Math.max(0, consPhys - consRes);
+          const consPhys = Number(stk.consignment_physical_stock) || 0;
+          const consRes = Number(stk.consignment_reserved_stock) || 0;
+          const consAvail = Math.max(0, consPhys - consRes);
 
-        const totalAvail = Number(stk.total_available_stock) || (ownedAvail + consAvail);
-        prodTotalAvailable += totalAvail;
+          const totalAvail = Number(stk.total_available_stock) || (ownedAvail + consAvail);
+          prodTotalAvailable += totalAvail;
 
-        const price = Number(v.catalog_price) || 0;
-        if (price > 0 && price < minCatalogPrice) minCatalogPrice = price;
-        if (price > maxCatalogPrice) maxCatalogPrice = price;
+          const price = Number(v.catalog_price) || 0;
+          if (price > 0 && price < minCatalogPrice) minCatalogPrice = price;
+          if (price > maxCatalogPrice) maxCatalogPrice = price;
 
-        // Masking: HANYA kembalikan data yang aman untuk publik
-        return {
-          variant_id: v.variant_id,
-          sku: v.sku,
-          color: v.color || "-",
-          size: v.size || "-",
-          catalog_price: price,
-          available_stock: totalAvail,
-          is_in_stock: totalAvail > 0
-        };
-      });
+          // Masking: HANYA kembalikan data yang aman untuk publik
+          return {
+            variant_id: v.variant_id,
+            sku: v.sku,
+            color: v.color || "-",
+            size: v.size || "-",
+            catalog_price: price,
+            available_stock: totalAvail,
+            is_in_stock: totalAvail > 0
+          };
+        });
+      } else {
+        // Tetap tampilkan produk meskipun varian ukuran belum didaftarkan
+        sanitizedVariants = [{
+          variant_id: "VAR-DEFAULT",
+          sku: prod.product_id,
+          color: "Standard",
+          size: "All Size",
+          catalog_price: 0,
+          available_stock: 0,
+          is_in_stock: false
+        }];
+      }
 
       if (minCatalogPrice === Infinity) minCatalogPrice = 0;
 

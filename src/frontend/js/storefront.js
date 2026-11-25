@@ -78,6 +78,10 @@ async function loadCatalog() {
     const data = await res.json();
     if (data.success && data.products) {
       STORE_PRODUCTS = data.products;
+      if (STORE_PRODUCTS.length === 0) {
+        showEmptyState("Belum ada produk di etalase saat ini.");
+        return;
+      }
       populateCategoryFilter(STORE_PRODUCTS);
       populateSizeFilter(STORE_PRODUCTS);
       renderProducts();
