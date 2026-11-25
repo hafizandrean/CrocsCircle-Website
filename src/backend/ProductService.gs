@@ -247,6 +247,32 @@ const ProductService = (function() {
   }
 
   /**
+   * Menghapus Master Produk beserta Varian dan Stoknya
+   */
+  function deleteProduct(productId, deletedBy) {
+    return DatabaseHelper.withLock(30000, function() {
+      if (!productId) throw new Error("Product ID wajib diisi.");
+      const current = DatabaseHelper.getRowByPk("MASTER_PRODUK", "product_id", productId);
+      if (!current) throw new Error("Produk dengan ID '" + productId + "' tidak ditemukan.");
+
+      // Hapus varian & stok terkait
+      const variants = DatabaseHelper.getAllRows("VARIAN_PRODUK").filter(v => v.product_id === productId);
+      variants.forEach(v => {
+        try { DatabaseHelper.deleteRowByPk("STOK", "variant_id", v.variant_id); } catch (e) {}
+        try { DatabaseHelper.deleteRowByPk("VARIAN_PRODUK", "variant_id", v.variant_id); } catch (e) {}
+      });
+
+      DatabaseHelper.deleteRowByPk("MASTER_PRODUK", "product_id", productId);
+      DatabaseHelper.logActivity(deletedBy || "SYSTEM", "DELETE_PRODUCT", "PRODUCT", productId, "Hapus produk: " + current.product_name);
+
+      return {
+        success: true,
+        message: "Produk '" + current.product_name + "' berhasil dihapus."
+      };
+    });
+  }
+
+  /**
    * Mengarsipkan / Mengubah Status Aktif Produk
    */
   function setProductActiveStatus(productId, isActive, updatedBy) {
@@ -713,6 +739,7 @@ const ProductService = (function() {
     getProductDetail: getProductDetail,
     createProduct: createProduct,
     updateProduct: updateProduct,
+    deleteProduct: deleteProduct,
     setProductActiveStatus: setProductActiveStatus,
     createVariant: createVariant,
     updateVariant: updateVariant,

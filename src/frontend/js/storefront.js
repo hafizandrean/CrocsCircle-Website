@@ -18,35 +18,47 @@ function formatRupiah(number) {
   }).format(number || 0);
 }
 
-// Helper: Image Parsers
+// Helper: Image Proxy & Parsers
+function formatProxyImageUrl(url) {
+  if (!url) return "";
+  if (typeof url === 'string' && (url.includes('i.ibb.co') || url.includes('ibb.co'))) {
+    return '/api/image-proxy?url=' + encodeURIComponent(url);
+  }
+  return url;
+}
+
 function getPrimaryImageUrl(imageUrl) {
   if (!imageUrl) return "";
-  if (Array.isArray(imageUrl)) return imageUrl[0] || "";
-  if (typeof imageUrl === "string" && imageUrl.startsWith("[")) {
+  let raw = "";
+  if (Array.isArray(imageUrl)) raw = imageUrl[0] || "";
+  else if (typeof imageUrl === "string" && imageUrl.startsWith("[")) {
     try {
       const arr = JSON.parse(imageUrl);
-      if (Array.isArray(arr) && arr.length > 0) return arr[0];
+      if (Array.isArray(arr) && arr.length > 0) raw = arr[0];
     } catch (e) {}
+  } else if (typeof imageUrl === "string" && imageUrl.includes(",")) {
+    raw = imageUrl.split(",")[0].trim();
+  } else {
+    raw = imageUrl;
   }
-  if (typeof imageUrl === "string" && imageUrl.includes(",")) {
-    return imageUrl.split(",")[0].trim();
-  }
-  return imageUrl;
+  return formatProxyImageUrl(raw);
 }
 
 function getAllProductImages(imageUrl) {
+  let list = [];
   if (!imageUrl) return [];
-  if (Array.isArray(imageUrl)) return imageUrl.filter(Boolean);
-  if (typeof imageUrl === "string" && imageUrl.startsWith("[")) {
+  if (Array.isArray(imageUrl)) list = imageUrl.filter(Boolean);
+  else if (typeof imageUrl === "string" && imageUrl.startsWith("[")) {
     try {
       const arr = JSON.parse(imageUrl);
-      if (Array.isArray(arr)) return arr.filter(Boolean);
+      if (Array.isArray(arr)) list = arr.filter(Boolean);
     } catch (e) {}
+  } else if (typeof imageUrl === "string" && imageUrl.includes(",")) {
+    list = imageUrl.split(",").map(s => s.trim()).filter(Boolean);
+  } else if (imageUrl) {
+    list = [imageUrl];
   }
-  if (typeof imageUrl === "string" && imageUrl.includes(",")) {
-    return imageUrl.split(",").map(s => s.trim()).filter(Boolean);
-  }
-  return [imageUrl].filter(Boolean);
+  return list.map(formatProxyImageUrl);
 }
 
 // Fetch Catalog from Backend API

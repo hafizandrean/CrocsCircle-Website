@@ -22,35 +22,47 @@ const CROCS_STANDARD_SIZES = [
   'W5', 'W6', 'W7', 'W8', 'W9'
 ];
 
-// Helper: Image Parsers
+// Helper: Image Proxy & Parsers
+window.formatProxyImageUrl = function(url) {
+  if (!url) return "";
+  if (typeof url === 'string' && (url.includes('i.ibb.co') || url.includes('ibb.co'))) {
+    return '/api/image-proxy?url=' + encodeURIComponent(url);
+  }
+  return url;
+};
+
 window.getPrimaryImageUrl = function(imageUrl) {
   if (!imageUrl) return "";
-  if (Array.isArray(imageUrl)) return imageUrl[0] || "";
-  if (typeof imageUrl === "string" && imageUrl.startsWith("[")) {
+  let raw = "";
+  if (Array.isArray(imageUrl)) raw = imageUrl[0] || "";
+  else if (typeof imageUrl === "string" && imageUrl.startsWith("[")) {
     try {
       const arr = JSON.parse(imageUrl);
-      if (Array.isArray(arr) && arr.length > 0) return arr[0];
+      if (Array.isArray(arr) && arr.length > 0) raw = arr[0];
     } catch (e) {}
+  } else if (typeof imageUrl === "string" && imageUrl.includes(",")) {
+    raw = imageUrl.split(",")[0].trim();
+  } else {
+    raw = imageUrl;
   }
-  if (typeof imageUrl === "string" && imageUrl.includes(",")) {
-    return imageUrl.split(",")[0].trim();
-  }
-  return imageUrl;
+  return window.formatProxyImageUrl(raw);
 };
 
 window.getAllProductImages = function(imageUrl) {
+  let list = [];
   if (!imageUrl) return [];
-  if (Array.isArray(imageUrl)) return imageUrl.filter(Boolean);
-  if (typeof imageUrl === "string" && imageUrl.startsWith("[")) {
+  if (Array.isArray(imageUrl)) list = imageUrl.filter(Boolean);
+  else if (typeof imageUrl === "string" && imageUrl.startsWith("[")) {
     try {
       const arr = JSON.parse(imageUrl);
-      if (Array.isArray(arr)) return arr.filter(Boolean);
+      if (Array.isArray(arr)) list = arr.filter(Boolean);
     } catch (e) {}
+  } else if (typeof imageUrl === "string" && imageUrl.includes(",")) {
+    list = imageUrl.split(",").map(s => s.trim()).filter(Boolean);
+  } else if (imageUrl) {
+    list = [imageUrl];
   }
-  if (typeof imageUrl === "string" && imageUrl.includes(",")) {
-    return imageUrl.split(",").map(s => s.trim()).filter(Boolean);
-  }
-  return [imageUrl].filter(Boolean);
+  return list.map(window.formatProxyImageUrl);
 };
 
 // Helper: Format Rupiah
@@ -296,12 +308,40 @@ window.loadProducts = async function() {
           <button onclick="editProduct('${p.product_id}')" class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.78rem;" title="Edit Produk">
             <i class="fa-solid fa-pen-to-square"></i>
           </button>
+          <button onclick="confirmDeleteProduct('${p.product_id}', '${(p.product_name || '').replace(/'/g, "\\'")}')" class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.78rem; color: #DC2626; border-color: #FCA5A5;" title="Hapus Produk">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
         </td>
       </tr>
     `}).join('');
 
   } catch (err) {
     console.error("Gagal memuat katalog produk:", err);
+  }
+};
+
+// Handler Hapus Produk
+window.confirmDeleteProduct = async function(productId, productName) {
+  if (!confirm(`Hapus produk "${productName}" (${productId})?\n\nSemua varian ukuran dan stok produk ini akan dihapus secara permanen.`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/products?product_id=${encodeURIComponent(productId)}`, {
+      method: "DELETE",
+      headers: {
+        "Authorization": `Bearer ${PROD_STATE.token}`
+      }
+    });
+    const result = await res.json();
+    if (result.success) {
+      alert(`Produk "${productName}" berhasil dihapus.`);
+      await loadProductsList();
+    } else {
+      alert("Gagal menghapus produk: " + (result.error || "Terjadi kesalahan."));
+    }
+  } catch (err) {
+    alert("Kendala koneksi ke server: " + err.message);
   }
 };
 

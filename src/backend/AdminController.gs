@@ -286,6 +286,20 @@ var AdminController = (function() {
   }
 
   /**
+   * Endpoint Hapus Master Produk
+   */
+  function deleteProduct(token, productId) {
+    const session = AuthService.validateSession(token);
+    if (!session.valid) return { success: false, statusCode: 401, error: session.error };
+
+    try {
+      return ProductService.deleteProduct(productId, session.user.username);
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  }
+
+  /**
    * Endpoint Simpan / Update Varian Produk
    */
   function saveVariant(token, variantData) {
@@ -432,6 +446,7 @@ var AdminController = (function() {
     getProducts: getProducts,
     getProductDetail: getProductDetail,
     saveProduct: saveProduct,
+    deleteProduct: deleteProduct,
     saveVariant: saveVariant,
     getInventory: getInventory,
     receiveStock: receiveStock,

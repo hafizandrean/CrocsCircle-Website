@@ -384,6 +384,58 @@ const server = http.createServer((req, res) => {
       return;
     }
 
+    // 7b. DELETE /api/products or POST /api/products/delete (Delete Product)
+    if ((pathname === '/api/products' && req.method === 'DELETE') || (pathname === '/api/products/delete' && req.method === 'POST')) {
+      getRequestBody(data => {
+        const token = extractToken();
+        const productId = parsedUrl.query.product_id || data.product_id;
+        const result = AdminController.deleteProduct(token, productId);
+        res.writeHead(result.success ? 200 : (result.statusCode || 400));
+        res.end(JSON.stringify(result));
+      });
+      return;
+    }
+
+    // 7c. GET /api/image-proxy (Bypass ISP censorship / DNS blocking in Indonesia)
+    if (pathname === '/api/image-proxy' && req.method === 'GET') {
+      const targetUrl = parsedUrl.query.url;
+      if (!targetUrl || !targetUrl.startsWith('http')) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: "Missing or invalid url" }));
+        return;
+      }
+      const client = targetUrl.startsWith('https') ? require('https') : require('http');
+      const proxyReq = client.get(targetUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      }, imgRes => {
+        if (imgRes.statusCode >= 300 && imgRes.statusCode < 400 && imgRes.headers.location) {
+          const redirClient = imgRes.headers.location.startsWith('https') ? require('https') : require('http');
+          redirClient.get(imgRes.headers.location, redirRes => {
+            res.writeHead(redirRes.statusCode, {
+              'Content-Type': redirRes.headers['content-type'] || 'image/jpeg',
+              'Cache-Control': 'public, max-age=86400',
+              'Access-Control-Allow-Origin': '*'
+            });
+            redirRes.pipe(res);
+          }).on('error', () => { res.writeHead(502); res.end('Proxy redirect error'); });
+          return;
+        }
+        res.writeHead(imgRes.statusCode, {
+          'Content-Type': imgRes.headers['content-type'] || 'image/jpeg',
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*'
+        });
+        imgRes.pipe(res);
+      });
+      proxyReq.on('error', err => {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: "Failed to proxy image: " + err.message }));
+      });
+      return;
+    }
+
     // 8. POST /api/variants (Create / Update Variant)
     if (pathname === '/api/variants' && req.method === 'POST') {
       getRequestBody(data => {
