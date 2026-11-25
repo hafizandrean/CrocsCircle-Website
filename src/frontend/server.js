@@ -1,5 +1,6 @@
 // CrocsCircle.ID — Local Web Server & API Bridge
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -227,7 +228,44 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon'
 };
 
-const server = http.createServer((req, res) => {
+// Google Apps Script Live Database Bridge Configuration
+const GAS_WEBAPP_URL = process.env.GAS_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbxBMxGcb-GtocX4hgmgfzsXP9IGgwluTlEttuPsJk0xIay5q3Rjx-TFRw2q2T9XM9QfkQ/exec';
+const ENABLE_GAS_SYNC = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1' || process.env.USE_GAS === 'true';
+
+let storefrontCatalogCache = null;
+let storefrontCatalogCacheTime = 0;
+const CATALOG_CACHE_TTL_MS = 15000;
+
+function callGasProxy(payload) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify(payload);
+    const reqGas = https.request(GAS_WEBAPP_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    }, (gasRes) => {
+      const handleStream = (stream) => {
+        let body = '';
+        stream.on('data', chunk => body += chunk);
+        stream.on('end', () => {
+          try { resolve(JSON.parse(body)); } catch (e) { resolve({ raw: body, success: true }); }
+        });
+      };
+      if (gasRes.headers.location) {
+        https.get(gasRes.headers.location, handleStream);
+      } else {
+        handleStream(gasRes);
+      }
+    });
+    reqGas.on('error', reject);
+    reqGas.write(postData);
+    reqGas.end();
+  });
+}
+
+const server = http.createServer(async (req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const pathname = parsedUrl.pathname;
 
@@ -316,7 +354,19 @@ const server = http.createServer((req, res) => {
 
     // 1. POST /api/login
     if (pathname === '/api/login' && req.method === 'POST') {
-      getRequestBody(data => {
+      getRequestBody(async data => {
+        if (ENABLE_GAS_SYNC) {
+          try {
+            const gasRes = await callGasProxy({ action: 'login', username: data.username, password: data.password });
+            if (gasRes && gasRes.success) {
+              res.writeHead(200);
+              res.end(JSON.stringify(gasRes));
+              return;
+            }
+          } catch (e) {
+            console.warn("GAS login fallback:", e.message);
+          }
+        }
         const result = AdminController.login(data.username, data.password);
         res.writeHead(result.success ? 200 : 401);
         res.end(JSON.stringify(result));
@@ -327,6 +377,18 @@ const server = http.createServer((req, res) => {
     // 2. GET /api/session
     if (pathname === '/api/session' && req.method === 'GET') {
       const token = extractToken();
+      if (ENABLE_GAS_SYNC && token) {
+        try {
+          const gasRes = await callGasProxy({ action: 'auth/session', token: token });
+          if (gasRes && gasRes.success) {
+            res.writeHead(200);
+            res.end(JSON.stringify(gasRes));
+            return;
+          }
+        } catch (e) {
+          console.warn("GAS session fallback:", e.message);
+        }
+      }
       const result = AdminController.getSessionUser(token);
       res.writeHead(result.success ? 200 : 401);
       res.end(JSON.stringify(result));
@@ -335,8 +397,13 @@ const server = http.createServer((req, res) => {
 
     // 3. POST /api/logout
     if (pathname === '/api/logout' && req.method === 'POST') {
-      getRequestBody(data => {
+      getRequestBody(async data => {
         const token = data.token || extractToken();
+        if (ENABLE_GAS_SYNC && token) {
+          try {
+            await callGasProxy({ action: 'auth/logout', token: token });
+          } catch (e) {}
+        }
         const result = AdminController.logout(token);
         res.writeHead(200);
         res.end(JSON.stringify(result));
@@ -349,6 +416,18 @@ const server = http.createServer((req, res) => {
       const token = extractToken();
       const month = parsedUrl.query.month;
       const year = parsedUrl.query.year;
+      if (ENABLE_GAS_SYNC && token) {
+        try {
+          const gasRes = await callGasProxy({ action: 'dashboard/data', token: token, month: month, year: year });
+          if (gasRes && gasRes.success) {
+            res.writeHead(200);
+            res.end(JSON.stringify(gasRes));
+            return;
+          }
+        } catch (e) {
+          console.warn("GAS dashboard fallback:", e.message);
+        }
+      }
       const result = AdminController.getDashboardData(token, month, year);
       res.writeHead(result.success ? 200 : (result.statusCode || 400));
       res.end(JSON.stringify(result));
@@ -358,6 +437,18 @@ const server = http.createServer((req, res) => {
     // 5. GET /api/products
     if (pathname === '/api/products' && req.method === 'GET') {
       const token = extractToken();
+      if (ENABLE_GAS_SYNC && token) {
+        try {
+          const gasRes = await callGasProxy({ action: 'products/list', token: token, ...parsedUrl.query });
+          if (gasRes && gasRes.success) {
+            res.writeHead(200);
+            res.end(JSON.stringify(gasRes));
+            return;
+          }
+        } catch (e) {
+          console.warn("GAS products list fallback:", e.message);
+        }
+      }
       const result = AdminController.getProducts(token, parsedUrl.query);
       res.writeHead(result.success ? 200 : (result.statusCode || 400));
       res.end(JSON.stringify(result));
@@ -367,6 +458,18 @@ const server = http.createServer((req, res) => {
     // 6. GET /api/products/detail
     if (pathname === '/api/products/detail' && req.method === 'GET') {
       const token = extractToken();
+      if (ENABLE_GAS_SYNC && token) {
+        try {
+          const gasRes = await callGasProxy({ action: 'products/detail', token: token, id: parsedUrl.query.id });
+          if (gasRes && gasRes.success) {
+            res.writeHead(200);
+            res.end(JSON.stringify(gasRes));
+            return;
+          }
+        } catch (e) {
+          console.warn("GAS product detail fallback:", e.message);
+        }
+      }
       const result = AdminController.getProductDetail(token, parsedUrl.query.id);
       res.writeHead(result.success ? 200 : (result.statusCode || 400));
       res.end(JSON.stringify(result));
@@ -375,8 +478,21 @@ const server = http.createServer((req, res) => {
 
     // 7. POST /api/products (Create / Update Product)
     if (pathname === '/api/products' && req.method === 'POST') {
-      getRequestBody(data => {
+      getRequestBody(async data => {
         const token = extractToken();
+        storefrontCatalogCache = null; // Clear cache
+        if (ENABLE_GAS_SYNC && token) {
+          try {
+            const gasRes = await callGasProxy({ action: 'products/save', token: token, ...data });
+            if (gasRes && gasRes.success) {
+              res.writeHead(200);
+              res.end(JSON.stringify(gasRes));
+              return;
+            }
+          } catch (e) {
+            console.warn("GAS save product fallback:", e.message);
+          }
+        }
         const result = AdminController.saveProduct(token, data);
         res.writeHead(result.success ? 200 : (result.statusCode || 400));
         res.end(JSON.stringify(result));
@@ -386,9 +502,22 @@ const server = http.createServer((req, res) => {
 
     // 7b. DELETE /api/products or POST /api/products/delete (Delete Product)
     if ((pathname === '/api/products' && req.method === 'DELETE') || (pathname === '/api/products/delete' && req.method === 'POST')) {
-      getRequestBody(data => {
+      getRequestBody(async data => {
         const token = extractToken();
         const productId = parsedUrl.query.product_id || data.product_id;
+        storefrontCatalogCache = null; // Clear cache
+        if (ENABLE_GAS_SYNC && token) {
+          try {
+            const gasRes = await callGasProxy({ action: 'products/delete', token: token, id: productId, product_id: productId });
+            if (gasRes && gasRes.success) {
+              res.writeHead(200);
+              res.end(JSON.stringify(gasRes));
+              return;
+            }
+          } catch (e) {
+            console.warn("GAS delete product fallback:", e.message);
+          }
+        }
         const result = AdminController.deleteProduct(token, productId);
         res.writeHead(result.success ? 200 : (result.statusCode || 400));
         res.end(JSON.stringify(result));
@@ -438,8 +567,21 @@ const server = http.createServer((req, res) => {
 
     // 8. POST /api/variants (Create / Update Variant)
     if (pathname === '/api/variants' && req.method === 'POST') {
-      getRequestBody(data => {
+      getRequestBody(async data => {
         const token = extractToken();
+        storefrontCatalogCache = null; // Clear cache
+        if (ENABLE_GAS_SYNC && token) {
+          try {
+            const gasRes = await callGasProxy({ action: 'variants/save', token: token, ...data });
+            if (gasRes && gasRes.success) {
+              res.writeHead(200);
+              res.end(JSON.stringify(gasRes));
+              return;
+            }
+          } catch (e) {
+            console.warn("GAS save variant fallback:", e.message);
+          }
+        }
         const result = AdminController.saveVariant(token, data);
         res.writeHead(result.success ? 200 : (result.statusCode || 400));
         res.end(JSON.stringify(result));
@@ -449,13 +591,32 @@ const server = http.createServer((req, res) => {
 
     // 8b. POST /api/variants/batch (Create Multiple Variants at Once)
     if (pathname === '/api/variants/batch' && req.method === 'POST') {
-      getRequestBody(data => {
+      getRequestBody(async data => {
         const token = extractToken();
         const variants = data.variants || [];
+        storefrontCatalogCache = null; // Clear cache
         if (!Array.isArray(variants) || variants.length === 0) {
           res.writeHead(400);
           res.end(JSON.stringify({ success: false, error: "Daftar varian kosong." }));
           return;
+        }
+        if (ENABLE_GAS_SYNC && token) {
+          try {
+            const results = [];
+            for (const v of variants) {
+              const gasRes = await callGasProxy({ action: 'variants/save', token: token, ...v });
+              results.push(gasRes);
+            }
+            res.writeHead(200);
+            res.end(JSON.stringify({
+              success: true,
+              createdCount: results.length,
+              results: results
+            }));
+            return;
+          } catch (e) {
+            console.warn("GAS batch variants fallback:", e.message);
+          }
         }
         const results = [];
         const errors = [];
@@ -588,6 +749,18 @@ const server = http.createServer((req, res) => {
     // 12. GET /api/metadata (Categories & Vendors)
     if (pathname === '/api/metadata' && req.method === 'GET') {
       const token = extractToken();
+      if (ENABLE_GAS_SYNC && token) {
+        try {
+          const gasRes = await callGasProxy({ action: 'metadata/master', token: token });
+          if (gasRes && gasRes.success) {
+            res.writeHead(200);
+            res.end(JSON.stringify(gasRes));
+            return;
+          }
+        } catch (e) {
+          console.warn("GAS metadata fallback:", e.message);
+        }
+      }
       const result = AdminController.getMasterMetadata(token);
       res.writeHead(result.success ? 200 : (result.statusCode || 400));
       res.end(JSON.stringify(result));
@@ -596,6 +769,26 @@ const server = http.createServer((req, res) => {
 
     // 13. GET /api/storefront/catalog (Public Customer Catalog)
     if (pathname === '/api/storefront/catalog' && req.method === 'GET') {
+      const now = Date.now();
+      if (ENABLE_GAS_SYNC) {
+        if (storefrontCatalogCache && (now - storefrontCatalogCacheTime < CATALOG_CACHE_TTL_MS)) {
+          res.writeHead(200);
+          res.end(JSON.stringify(storefrontCatalogCache));
+          return;
+        }
+        try {
+          const gasRes = await callGasProxy({ action: 'storefront/catalog', ...parsedUrl.query });
+          if (gasRes && gasRes.success) {
+            storefrontCatalogCache = gasRes;
+            storefrontCatalogCacheTime = now;
+            res.writeHead(200);
+            res.end(JSON.stringify(gasRes));
+            return;
+          }
+        } catch (e) {
+          console.warn("GAS catalog fallback:", e.message);
+        }
+      }
       const result = StorefrontService.getCatalog(parsedUrl.query);
       res.writeHead(result.success ? 200 : 400);
       res.end(JSON.stringify(result));

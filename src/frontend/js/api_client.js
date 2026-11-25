@@ -19,7 +19,7 @@ const API_CONFIG = {
   MODE: (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "LOCAL" : "GAS",
   LOCAL_GATEWAY: "/exec",
   // Production GAS Web App URL configured via Script Deployment
-  GAS_WEBAPP_URL: window.CROCS_GAS_URL || "https://script.google.com/macros/s/AKfycbxhEp0EFcoCbQuqjsX3MeEgSPQFboBbQgxySRnb3ypOJWdZMuHBmhwxaWQpyoskByBPFg/exec"
+  GAS_WEBAPP_URL: window.CROCS_GAS_URL || "https://script.google.com/macros/s/AKfycbxBMxGcb-GtocX4hgmgfzsXP9IGgwluTlEttuPsJk0xIay5q3Rjx-TFRw2q2T9XM9QfkQ/exec"
 };
 
 const ApiClient = (function() {
