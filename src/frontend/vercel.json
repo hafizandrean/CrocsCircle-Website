@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/[...route].js" },
+    { "source": "/exec", "destination": "/api/[...route].js" }
+  ]
+}

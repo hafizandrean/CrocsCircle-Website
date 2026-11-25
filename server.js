@@ -6,7 +6,9 @@ const crypto = require('crypto');
 const url = require('url');
 
 const PORT = 3000;
-const PUBLIC_DIR = path.join(__dirname, 'src', 'frontend');
+const PUBLIC_DIR = fs.existsSync(path.join(__dirname, 'src', 'frontend'))
+  ? path.join(__dirname, 'src', 'frontend')
+  : __dirname;
 
 // Setup Mock GAS Environment for Backend Execution
 class MockRange {
@@ -157,7 +159,9 @@ global.ContentService = {
 };
 
 // Load Backend Scripts
-const backendDir = path.join(__dirname, 'src', 'backend');
+const backendDir = fs.existsSync(path.join(__dirname, 'backend'))
+  ? path.join(__dirname, 'backend')
+  : path.join(__dirname, 'src', 'backend');
 function loadBackendFile(fileName, globalName) {
   const code = fs.readFileSync(path.join(backendDir, fileName), 'utf8');
   const exportStmt = globalName ? `\nglobal.${globalName} = ${globalName};` : '';
