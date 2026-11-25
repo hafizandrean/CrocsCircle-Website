@@ -362,7 +362,8 @@ function processFiles(fileList) {
       PROD_STATE.modalImages.push({
         name: file.name,
         data: rawData,
-        isNewLocal: true
+        isNewLocal: true,
+        file: file
       });
       processed++;
       if (processed >= fileList.length) {
@@ -445,41 +446,83 @@ window.removeImageAtIndex = function(index) {
   renderImagePreviews();
 };
 
-// Upload any local base64 images to server
+// Upload any local images to Cloud ImgBB (Lossless original quality)
+const IMGBB_API_KEY = "523d5e151a6dadfae29378f2124f3a68";
+
 async function uploadModalImagesToServer() {
-  const localItems = PROD_STATE.modalImages.filter(img => img.isNewLocal && img.data.startsWith('data:'));
+  const localItems = PROD_STATE.modalImages.filter(img => img.isNewLocal && (img.file || (typeof img.data === 'string' && img.data.startsWith('data:'))));
   if (localItems.length === 0) {
     return PROD_STATE.modalImages.map(img => img.data);
   }
 
-  const res = await fetch('/api/upload-images', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${PROD_STATE.token}`
-    },
-    body: JSON.stringify({ images: localItems })
-  });
-
-  const resData = await res.json();
-  if (!resData.success) {
-    console.warn("Gagal upload file fisik ke server, fallback ke direct data:", resData.error);
-    return PROD_STATE.modalImages.map(img => img.data);
-  }
-
-  const serverUrls = resData.urls || [];
-  let serverIdx = 0;
+  const statusEl = document.getElementById("imageUploadStatus");
   const finalUrls = [];
+  let currentIdx = 0;
 
   for (const img of PROD_STATE.modalImages) {
-    if (img.isNewLocal && img.data.startsWith('data:')) {
-      finalUrls.push(serverUrls[serverIdx] || img.data);
-      serverIdx++;
+    if (img.isNewLocal && (img.file || (typeof img.data === 'string' && img.data.startsWith('data:')))) {
+      currentIdx++;
+      if (statusEl) {
+        statusEl.innerText = `Mengunggah foto ke Cloud ImgBB (${currentIdx}/${localItems.length})...`;
+        statusEl.style.display = "block";
+      }
+
+      let uploadedUrl = null;
+      try {
+        const formData = new FormData();
+        if (img.file) {
+          formData.append("image", img.file);
+        } else if (typeof img.data === 'string' && img.data.startsWith('data:')) {
+          const b64 = img.data.split(',')[1];
+          formData.append("image", b64);
+        }
+
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+          method: "POST",
+          body: formData
+        });
+        const resData = await res.json();
+        if (resData && resData.success && resData.data && resData.data.url) {
+          uploadedUrl = resData.data.url;
+          console.log("Berhasil upload ke ImgBB:", uploadedUrl);
+        } else {
+          console.warn("ImgBB upload warning response:", resData);
+        }
+      } catch (err) {
+        console.warn("Gagal upload langsung ke ImgBB:", err.message);
+      }
+
+      if (uploadedUrl) {
+        finalUrls.push(uploadedUrl);
+        img.data = uploadedUrl;
+        img.isNewLocal = false;
+      } else {
+        // Fallback: coba endpoint server lokal
+        try {
+          const res = await fetch('/api/upload-images', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${PROD_STATE.token}`
+            },
+            body: JSON.stringify({ images: [img] })
+          });
+          const resData = await res.json();
+          if (resData && resData.success && resData.urls && resData.urls[0]) {
+            finalUrls.push(resData.urls[0]);
+          } else {
+            finalUrls.push(img.data);
+          }
+        } catch (e) {
+          finalUrls.push(img.data);
+        }
+      }
     } else {
       finalUrls.push(img.data);
     }
   }
 
+  if (statusEl) statusEl.style.display = "none";
   return finalUrls;
 }
 

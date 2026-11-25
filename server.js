@@ -485,8 +485,13 @@ const server = http.createServer((req, res) => {
             const cleanName = rawName.toLowerCase().replace(/[^a-z0-9_-]/g, '_').replace(/\.[^/.]+$/, "");
             const filename = `prod_${Date.now()}_${i}_${cleanName.slice(0, 30)}${ext}`;
             const targetPath = path.join(uploadsDir, filename);
-            fs.writeFileSync(targetPath, buffer);
-            savedUrls.push(`/uploads/${filename}`);
+            try {
+              fs.writeFileSync(targetPath, buffer);
+              savedUrls.push(`/uploads/${filename}`);
+            } catch (writeErr) {
+              // On read-only serverless environments, retain rawData as fallback
+              savedUrls.push(rawData);
+            }
           }
 
           res.writeHead(200);
