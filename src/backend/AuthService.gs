@@ -355,3 +355,22 @@ const AuthService = (function() {
     requireAdminOrOwner: requireAdminOrOwner
   };
 })();
+
+/**
+ * Runner Function untuk Google Apps Script Editor (Standalone Function)
+ * Menyiapkan akun Owner (hafiz & harits) dan Admin (admin1) ke tabel USERS
+ */
+function runSetupAllAccounts() {
+  AuthService.setupOwnerAccount("hafiz", "Hafiz Owner", "HafizOwner2026!");
+  AuthService.setupOwnerAccount("harits", "Harits Owner", "HaritsOwner2026!");
+  const login = AuthService.login("hafiz", "HafizOwner2026!");
+  if (login.success) {
+    AuthService.createAdminAccount(login.token, "admin1", "Admin Operasional", "AdminOperasional2026!");
+  }
+  Logger.log("Akun hafiz, harits, dan admin1 berhasil disiapkan di tabel USERS!");
+}
+
+function runSetupOwner() {
+  AuthService.setupOwnerAccount("hafiz", "Hafiz Owner", "HafizOwner2026!");
+  Logger.log("Akun Owner Hafiz berhasil disiapkan di tabel USERS!");
+}
