@@ -371,3 +371,92 @@ function seedDefaultPeriods() {
     Logger.log("Periode awal (Oktober & November) berhasil diisikan.");
   }
 }
+
+/**
+ * CROCSCIRCLE.ID — RESET KE NOL (OPTION B)
+ * Menghapus seluruh baris transaksi dan produk latihan dari spreadsheet,
+ * mengembalikan seluruh sheet ke baris header bersih.
+ * 
+ * Yang direset:
+ * - MASTER_PRODUK & VARIAN_PRODUK
+ * - STOK & MUTASI_STOK
+ * - PENJUALAN, DETAIL_PENJUALAN, RETUR_PENJUALAN
+ * - PEMBELIAN_STOK & DETAIL_PEMBELIAN
+ * - PENGELUARAN
+ * - BATCH_KONSINYASI & TITIP_JUAL
+ * - PRE_ORDER & PEMBAYARAN_PO
+ * - SETTLEMENT_VENDOR & DETAIL_SETTLEMENT_VENDOR
+ * - PEMBAGIAN_KEUNTUNGAN, CLOSING_BULANAN, SALDO_DANA
+ * 
+ * Yang dipertahankan:
+ * - Header baris 1 setiap tabel
+ * - USERS (akun hafiz, harits, admin1)
+ * - PENGATURAN (pengaturan toko & persentase bagi hasil)
+ * - KATEGORI (kategori produk dasar)
+ * - VENDORS (partner konsinyasi default)
+ */
+function resetDatabaseToZero() {
+  Logger.log("=== MEMULAI RESET DATABASE CROCSCIRCLE KE NOL (CLEAN SLATE) ===");
+  const tablesToClear = [
+    "PENJUALAN",
+    "DETAIL_PENJUALAN",
+    "RETUR_PENJUALAN",
+    "PENGELUARAN",
+    "PEMBELIAN_STOK",
+    "DETAIL_PEMBELIAN",
+    "PENERIMAAN_BARANG",
+    "STOK",
+    "MUTASI_STOK",
+    "BATCH_KONSINYASI",
+    "TITIP_JUAL",
+    "SETTLEMENT_VENDOR",
+    "DETAIL_SETTLEMENT_VENDOR",
+    "PRE_ORDER",
+    "PEMBAYARAN_PO",
+    "PEMBAGIAN_KEUNTUNGAN",
+    "CLOSING_BULANAN",
+    "SALDO_DANA",
+    "MASTER_PRODUK",
+    "VARIAN_PRODUK"
+  ];
+
+  const ss = (typeof SpreadsheetApp !== 'undefined') ? SpreadsheetApp.getActiveSpreadsheet() : DatabaseHelper.getSpreadsheet();
+  tablesToClear.forEach(tableName => {
+    const sheet = ss.getSheetByName(tableName);
+    if (sheet) {
+      const lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        if (typeof sheet.deleteRows === 'function') {
+          sheet.deleteRows(2, lastRow - 1);
+        } else {
+          for (let r = lastRow; r >= 2; r--) {
+            sheet.deleteRow(r);
+          }
+        }
+        Logger.log("Sheet " + tableName + ": " + (lastRow - 1) + " baris data berhasil dibersihkan.");
+      } else {
+        Logger.log("Sheet " + tableName + " sudah kosong.");
+      }
+    }
+  });
+
+  // Pastikan periode aktif November 2026 berstatus OPEN
+  const periodSheet = ss.getSheetByName("PERIODE_KEUANGAN");
+  if (periodSheet) {
+    const lastRow = periodSheet.getLastRow();
+    if (lastRow > 1) {
+      if (typeof periodSheet.deleteRows === 'function') {
+        periodSheet.deleteRows(2, lastRow - 1);
+      } else {
+        for (let r = lastRow; r >= 2; r--) {
+          periodSheet.deleteRow(r);
+        }
+      }
+    }
+    // Masukkan periode aktif berjalan
+    periodSheet.appendRow(["PER-2026-11", 11, 2026, "OPEN", "", "", 1, "Periode aktif berjalan"]);
+  }
+
+  Logger.log("=== RESET DATABASE SELESAI. DATABASE SEKARANG 100% BERSIH DARI DATA LATIHAN ===");
+  return { success: true, message: "Seluruh data latihan dan produk berhasil direset ke nol." };
+}

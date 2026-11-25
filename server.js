@@ -201,13 +201,16 @@ try {
   }
 } catch (e) {}
 
-// Load Real CrocsCircle Excel Data Seeder
+// Clean Zero State: Mock/training data seeding is disabled so operations start fresh from 0.
+// Owner & Admin credentials, categories, and settings are preserved.
+/*
 loadBackendFile('SeedRealCrocsData.js', 'seedRealCrocsCircleData');
 try {
   seedRealCrocsCircleData();
 } catch (e) {
   console.error("Error seeding real data:", e);
 }
+*/
 
 // Static File Mime Types
 const MIME_TYPES = {
