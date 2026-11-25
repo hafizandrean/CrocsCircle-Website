@@ -176,7 +176,7 @@ async function loadAllFinancialData() {
     }
 
     // 5. Load Vendor Reconciliation
-    // Route: GET /api/reports/vendor-reconciliation → { success, vendors: [{ vendor, consignment_summary, settlement_history }] }
+    // Route: GET /api/reports/vendor-reconciliation → { success, vendors: [{ vendor, consignment_summary, sold_items, settlement_history }] }
     const vndRes = await fetch(`/api/reports/vendor-reconciliation`, { headers: authHeader });
     const vndData = await vndRes.json();
     if (vndData.success) {
@@ -191,12 +191,19 @@ async function loadAllFinancialData() {
         return s + (cs.active_receivable_claims || 0);
       }, 0);
       const history = vendors.flatMap(v => v.settlement_history || []);
+      const allSoldItems = vendors.flatMap(v => v.sold_items || []);
+
+      FIN_STATE.soldConsignmentItems = allSoldItems;
+      FIN_STATE.vendorsList = vendors;
+
       renderVendorReconciliation({
+        vendors: vendors,
         payables: {
           total_gross_payable:   totalGross,
           total_claims_deducted: totalClaims,
           total_net_payout:      totalGross - totalClaims
         },
+        sold_items: allSoldItems,
         settlement_history: history
       });
     }
@@ -372,27 +379,198 @@ function renderFundBalances(funds) {
 function renderVendorReconciliation(vndData) {
   const payables = vndData.payables || {};
   const history = vndData.settlement_history || [];
+  const vendors = vndData.vendors || [];
+  const soldItems = vndData.sold_items || [];
 
+  // Update Partner Name in Title if available
+  const titleEl = document.getElementById("vndPartnerTitle");
+  if (titleEl && vendors.length > 0) {
+    const vNames = vendors.map(v => (v.vendor ? (v.vendor.vendor_name || v.vendor.vendor_id) : 'Dzaki')).join(', ');
+    titleEl.innerHTML = `<i class="fa-solid fa-handshake" style="color: var(--primary);"></i> Rekonsiliasi Partner Titip Jual: ${vNames}`;
+  }
+
+  // KPI Metrics
   document.getElementById("vndGrossPayable").innerText = formatRupiah(payables.total_gross_payable);
   document.getElementById("vndClaimsDeducted").innerText = formatRupiah(payables.total_claims_deducted || 0);
   document.getElementById("vndNetPayout").innerText = formatRupiah(payables.total_net_payout || payables.total_gross_payable);
 
+  // Quick Stats Badges
+  const totalUnits = soldItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0);
+  const totalStoreIncentive = soldItems.reduce((s, it) => s + (Number(it.total_crocs_incentive) || 0), 0);
+  const totalPartnerPayable = soldItems.reduce((s, it) => s + (Number(it.total_vendor_payable) || 0), 0);
+
+  const badgeUnits = document.getElementById("badgeSoldUnits");
+  const badgeInc = document.getElementById("badgeStoreIncentive");
+  const badgePayable = document.getElementById("badgePartnerPayable");
+  if (badgeUnits) badgeUnits.innerText = totalUnits + " psg";
+  if (badgeInc) badgeInc.innerText = formatRupiah(totalStoreIncentive);
+  if (badgePayable) badgePayable.innerText = formatRupiah(totalPartnerPayable);
+
+  // Render Sold Items Table
+  renderSoldConsignmentItems(soldItems);
+
+  // Render Settlement History Table
   const tableBody = document.getElementById("vndSettlementTableBody");
   if (!history || history.length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Belum ada riwayat settlement vendor pada periode ini.</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Belum ada riwayat settlement pembayaran partner pada periode ini.</td></tr>`;
   } else {
     tableBody.innerHTML = history.map(s => `
       <tr>
         <td><strong>${s.settlement_id}</strong></td>
         <td>${formatDateIndo(s.settlement_date)}</td>
-        <td>${formatRupiah(s.total_gross_payable)}</td>
-        <td style="color: #DC2626;">-${formatRupiah(s.total_claims_deducted)}</td>
-        <td style="font-weight: 700; color: #059669;">${formatRupiah(s.total_net_payout)}</td>
-        <td><span class="badge badge-info">${s.payment_method}</span></td>
-        <td><span class="badge badge-success">COMPLETED</span></td>
+        <td style="text-align: right;">${formatRupiah(s.total_gross_payable)}</td>
+        <td style="text-align: right; color: #DC2626;">-${formatRupiah(s.total_claims_deducted)}</td>
+        <td style="text-align: right; font-weight: 700; color: #059669;">${formatRupiah(s.total_net_payout)}</td>
+        <td style="text-align: center;"><span class="badge badge-info">${s.payment_method}</span></td>
+        <td style="text-align: center;"><span class="badge badge-success">COMPLETED</span></td>
       </tr>
     `).join('');
   }
+}
+
+function renderSoldConsignmentItems(items) {
+  const tbody = document.getElementById("vndSoldItemsTableBody");
+  if (!tbody) return;
+
+  if (!items || items.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2.5rem 1rem;">Tidak ada transaksi barang titip jual yang cocok dengan kriteria filter.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = items.map(item => {
+    const dateFormatted = item.transaction_date ? formatDateIndo(item.transaction_date) : "—";
+    const normalPrice = Number(item.normal_price) || 0;
+    const sellingPrice = Number(item.selling_price) || 0;
+    const isNego = item.is_negotiated || (normalPrice > 0 && sellingPrice < normalPrice);
+    const disc = isNego ? (normalPrice - sellingPrice) : 0;
+    const isPaid = item.settlement_status === "PAID" || Number(item.vendor_remaining_payable) === 0;
+
+    const variantBadge = [item.color, item.size ? `Size ${item.size}` : ''].filter(Boolean).join(' • ');
+
+    return `
+      <tr style="border-bottom: 1px solid var(--border);">
+        <td>
+          <div style="font-family: monospace; font-size: 0.78rem; font-weight: 700; color: var(--primary);">
+            ${item.sales_id}
+          </div>
+          <div style="font-size: 0.73rem; color: var(--text-muted); margin-top: 2px;">
+            <i class="fa-regular fa-calendar" style="color: #94A3B8;"></i> ${dateFormatted}
+          </div>
+          <div style="font-size: 0.7rem; color: #64748B;">
+            ${item.sales_channel || 'OFFLINE_STORE'}
+          </div>
+        </td>
+        <td>
+          <div style="font-weight: 700; font-size: 0.86rem; color: var(--text-main);">
+            ${item.product_name || 'Crocs Classic'}
+          </div>
+          <div style="display: flex; gap: 0.35rem; align-items: center; margin-top: 3px; flex-wrap: wrap;">
+            ${variantBadge ? `<span style="font-size: 0.72rem; background: #F1F5F9; color: #475569; padding: 1px 6px; border-radius: 4px; font-weight: 600;">${variantBadge}</span>` : ''}
+            <span style="font-family: monospace; font-size: 0.7rem; color: #94A3B8;">${item.sku || item.variant_id}</span>
+          </div>
+        </td>
+        <td style="text-align: center; font-weight: 700; font-size: 0.88rem;">
+          ${item.quantity || 1} psg
+        </td>
+        <td style="text-align: right; white-space: nowrap;">
+          <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">
+            ${formatRupiah(normalPrice)}
+          </span>
+        </td>
+        <td style="text-align: right; white-space: nowrap;">
+          <div style="font-weight: 800; font-size: 0.95rem; color: ${isNego ? '#B45309' : 'var(--text-main)'};">
+            ${formatRupiah(sellingPrice)}
+          </div>
+          ${isNego ? `
+            <span style="display: inline-flex; align-items: center; gap: 3px; font-size: 0.68rem; background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; padding: 1px 5px; border-radius: 4px; font-weight: 700; margin-top: 2px;">
+              <i class="fa-solid fa-tag"></i> Nego -${formatRupiah(disc)}
+            </span>
+          ` : `
+            <span style="font-size: 0.68rem; color: #059669; font-weight: 600;">
+              <i class="fa-solid fa-circle-check"></i> Normal
+            </span>
+          `}
+        </td>
+        <td style="text-align: center; white-space: nowrap;">
+          <span style="display: inline-block; font-weight: 800; font-size: 0.8rem; color: #047857; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 3px 8px; border-radius: 5px;">
+            🔒 ${formatRupiah(item.crocs_incentive_unit)}
+          </span>
+          <div style="font-size: 0.68rem; color: #065F46; margin-top: 2px;">Laba Toko Terkunci</div>
+        </td>
+        <td style="text-align: right; white-space: nowrap;">
+          <div style="font-weight: 700; font-size: 0.88rem; color: #1D4ED8;">
+            ${formatRupiah(item.vendor_payable_unit)}
+          </div>
+          <div style="font-size: 0.68rem; color: var(--text-muted);">per pasang</div>
+        </td>
+        <td style="text-align: right; white-space: nowrap;">
+          <span style="font-weight: 800; font-size: 0.98rem; color: #059669;">
+            ${formatRupiah(item.total_vendor_payable)}
+          </span>
+        </td>
+        <td style="text-align: center; white-space: nowrap;">
+          ${isPaid ? `
+            <span style="display: inline-flex; align-items: center; gap: 4px; background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; padding: 3px 8px; border-radius: 5px; font-size: 0.74rem; font-weight: 700;">
+              <i class="fa-solid fa-check-double"></i> Lunas Disetor
+            </span>
+          ` : `
+            <span style="display: inline-flex; align-items: center; gap: 4px; background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; padding: 3px 8px; border-radius: 5px; font-size: 0.74rem; font-weight: 700;">
+              <i class="fa-regular fa-clock"></i> Belum Disetor
+            </span>
+          `}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+let soldSearchTimer = null;
+window.onFilterSoldItems = function() {
+  clearTimeout(soldSearchTimer);
+  soldSearchTimer = setTimeout(() => {
+    applySoldItemFilters();
+  }, 200);
+};
+
+window.resetSoldFilters = function() {
+  const searchEl = document.getElementById("filterSoldSearch");
+  const statusEl = document.getElementById("filterSoldStatus");
+  const negoEl = document.getElementById("filterSoldNego");
+  if (searchEl) searchEl.value = "";
+  if (statusEl) statusEl.value = "ALL";
+  if (negoEl) negoEl.value = "ALL";
+  applySoldItemFilters();
+};
+
+function applySoldItemFilters() {
+  const all = FIN_STATE.soldConsignmentItems || [];
+  const q = (document.getElementById("filterSoldSearch")?.value || "").trim().toLowerCase();
+  const statusFilter = document.getElementById("filterSoldStatus")?.value || "ALL";
+  const negoFilter = document.getElementById("filterSoldNego")?.value || "ALL";
+
+  const filtered = all.filter(it => {
+    if (q) {
+      const matchText = [
+        it.sales_id, it.product_name, it.variant_id, it.sku,
+        it.color, it.size, it.customer_name
+      ].join(" ").toLowerCase();
+      if (!matchText.includes(q)) return false;
+    }
+
+    const isPaid = it.settlement_status === "PAID" || Number(it.vendor_remaining_payable) === 0;
+    if (statusFilter === "UNPAID" && isPaid) return false;
+    if (statusFilter === "PAID" && !isPaid) return false;
+
+    const normalPrice = Number(it.normal_price) || 0;
+    const sellingPrice = Number(it.selling_price) || 0;
+    const isNego = it.is_negotiated || (normalPrice > 0 && sellingPrice < normalPrice);
+    if (negoFilter === "NEGOTIATED" && !isNego) return false;
+    if (negoFilter === "NORMAL" && isNego) return false;
+
+    return true;
+  });
+
+  renderSoldConsignmentItems(filtered);
 }
 
 function renderSnapshots(snapshots) {
@@ -651,4 +829,102 @@ window.handleLogout = async function() {
     sessionStorage.removeItem("crocscircle_admin_token");
     window.location.href = "login.html";
   }
+};
+
+// ============================================================
+// MODAL SPREADSHEET & EXCEL EXPORT
+// ============================================================
+window.openSpreadsheetModal = function() {
+  const savedUrl = localStorage.getItem('crocscircle_spreadsheet_url') || '';
+  const input = document.getElementById('spreadsheetUrlInput');
+  if (input) input.value = savedUrl;
+  document.getElementById('modalSpreadsheet').style.display = 'flex';
+};
+
+window.saveSpreadsheetUrlOnly = function() {
+  const url = (document.getElementById('spreadsheetUrlInput')?.value || '').trim();
+  if (url) {
+    localStorage.setItem('crocscircle_spreadsheet_url', url);
+    alert('✅ Link Google Sheets berhasil disimpan.');
+  } else {
+    alert('Masukkan URL Google Sheets terlebih dahulu.');
+  }
+};
+
+window.saveAndOpenSpreadsheet = function() {
+  const url = (document.getElementById('spreadsheetUrlInput')?.value || '').trim();
+  if (!url) {
+    alert('Silakan tempelkan link URL Google Sheets database Anda.');
+    return;
+  }
+  localStorage.setItem('crocscircle_spreadsheet_url', url);
+  window.open(url, '_blank');
+  closeModal('modalSpreadsheet');
+};
+
+window.downloadFinancialExcel = function() {
+  const monthNames = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const monthLabel = monthNames[FIN_STATE.currentMonth] || `Bulan_${FIN_STATE.currentMonth}`;
+  const yearLabel = FIN_STATE.currentYear;
+
+  // Retrieve current report figures
+  const rev = (FIN_STATE.incomeReport && FIN_STATE.incomeReport.revenue_breakdown) || {};
+  const exp = (FIN_STATE.incomeReport && FIN_STATE.incomeReport.expenses_breakdown) || {};
+  const hpp = (FIN_STATE.incomeReport && FIN_STATE.incomeReport.hpp_breakdown) || {};
+  const pnl = FIN_STATE.incomeReport || {};
+  const cash = FIN_STATE.cashFlowReport || {};
+  const soldItems = FIN_STATE.soldConsignmentItems || [];
+
+  let csvContent = `\uFEFF`; // UTF-8 BOM for Microsoft Excel compatibility
+
+  // 1. Header
+  csvContent += `LAPORAN KEUANGAN & PEMBUKUAN CROCSCIRCLE.ID\n`;
+  csvContent += `Periode;${monthLabel} ${yearLabel}\n`;
+  csvContent += `Tanggal Export;${new Date().toLocaleString('id-ID')}\n\n`;
+
+  // 2. Laba Rugi
+  csvContent += `=== LAPORAN LABA RUGI (P&L) ===\n`;
+  csvContent += `Komponen Akuntansi;Nominal (Rp)\n`;
+  csvContent += `Penjualan Retail Stok Sendiri;${rev.own_sales_omzet || 0}\n`;
+  csvContent += `Insentif / Laba Jual Titip Jual (Dzaki);${rev.consignment_incentive_omzet || 0}\n`;
+  csvContent += `Pre-Order (PO) Lunas Diakui;${rev.po_recognized_omzet || 0}\n`;
+  csvContent += `TOTAL OMZET RESMI;${rev.total_omzet || 0}\n`;
+  csvContent += `Total HPP FIFO Terakui;${hpp.total_hpp || 0}\n`;
+  csvContent += `LABA KOTOR (GROSS PROFIT);${pnl.gross_profit || 0}\n`;
+  csvContent += `Beban Operasional Usaha;${exp.operational_expenses || 0}\n`;
+  csvContent += `LABA BERSIH BERJALAN;${pnl.net_profit || 0}\n\n`;
+
+  // 3. Arus Kas
+  csvContent += `=== LAPORAN ARUS KAS (CASH FLOW) ===\n`;
+  csvContent += `Komponen Kas;Nominal (Rp)\n`;
+  csvContent += `Saldo Awal Kas;${cash.beginning_cash || 0}\n`;
+  csvContent += `Total Kas Masuk (Customer Receipts);${(cash.cash_inflows && cash.cash_inflows.total_cash_inflow) || 0}\n`;
+  csvContent += `Total Kas Keluar (Disbursements);${(cash.cash_outflows && cash.cash_outflows.total_cash_outflow) || 0}\n`;
+  csvContent += `Net Cash Flow Periode Ini;${cash.net_cash_flow || 0}\n`;
+  csvContent += `SALDO AKHIR KAS BERJALAN;${cash.ending_cash || 0}\n\n`;
+
+  // 4. Rincian Barang Titip Jual
+  csvContent += `=== RINCIAN PENJUALAN BARANG TITIP JUAL (DZAKI) ===\n`;
+  csvContent += `ID Penjualan;Tanggal;Produk;Varian;SKU;Qty;Harga Normal;Harga Laku Kasir;Status Nego;Laba Toko;Hak Bersih Partner;Total Setor;Status Setoran\n`;
+
+  if (soldItems.length > 0) {
+    soldItems.forEach(it => {
+      const isNego = it.is_negotiated ? 'NEGO' : 'NORMAL';
+      const variantStr = [it.color, it.size ? `Size ${it.size}` : ''].filter(Boolean).join(' ');
+      csvContent += `${it.sales_id};${it.transaction_date || ''};"${it.product_name || ''}";"${variantStr}";${it.sku || it.variant_id};${it.quantity || 1};${it.normal_price || 0};${it.selling_price || 0};${isNego};${it.crocs_incentive_unit || 0};${it.vendor_payable_unit || 0};${it.total_vendor_payable || 0};${it.settlement_status || 'UNPAID'}\n`;
+    });
+  } else {
+    csvContent += `Belum ada transaksi titip jual pada periode ini.;;;;;;;;;;;;\n`;
+  }
+
+  // Trigger download as CSV blob
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Laporan_Keuangan_CrocsCircle_${monthLabel}_${yearLabel}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 };

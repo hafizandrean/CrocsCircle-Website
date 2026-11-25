@@ -345,17 +345,42 @@ function updateItemPrice(index, newPrice) {
     return;
   }
 
-  // Validasi khusus konsinyasi vendor Dzaki / fixed share
+  // Validasi khusus titip jual vendor (Dzaki dll.)
   if (item.item_ownership === "CONSIGNMENT" && item.fixed_share > 0) {
     if (price < item.fixed_share) {
-      alert(`Harga jual konsinyasi tidak boleh lebih rendah dari hak pokok vendor (${formatRupiah(item.fixed_share)}).`);
-      renderPosCart();
-      return;
+      const defaultFee = 10000;
+      if (price < defaultFee) {
+        alert(`Harga jual tidak boleh lebih rendah dari insentif minimum toko (${formatRupiah(defaultFee)}).`);
+        renderPosCart();
+        return;
+      }
+
+      const vendorEstShare = Math.max(0, price - defaultFee);
+      const confirmNego = confirm(
+        `⚡ Otorisasi Nego Titip Jual (Owner):\n\n` +
+        `Customer menawar harga menjadi: ${formatRupiah(price)}\n` +
+        `(Di bawah kesepakatan standar: ${formatRupiah(item.fixed_share)})\n\n` +
+        `Sistem akan MENGUNCI keuntungan toko TETAP ${formatRupiah(defaultFee)}, dan sisa ${formatRupiah(vendorEstShare)} disetor ke partner.\n\n` +
+        `Setujui negosiasi harga ini?`
+      );
+
+      if (!confirmNego) {
+        renderPosCart();
+        return;
+      }
+
+      item.owner_override_approval = true;
+      item.nego_mode = true;
+      item.custom_incentive = defaultFee;
+      item.custom_vendor_share = vendorEstShare;
+    } else {
+      item.owner_override_approval = false;
+      item.nego_mode = false;
     }
   }
 
   item.actual_price = price;
-  updateCartCalculations();
+  renderPosCart();
 }
 
 function clearPosCart() {
@@ -393,8 +418,13 @@ function renderPosCart() {
           <div>
             ${isCons ? `
               <span class="ownership-pill ownership-consignment" style="font-size: 0.65rem; padding: 1px 5px;">
-                Konsinyasi (${escapeHtml(item.vendor_name || item.vendor_id)})
+                Titip Jual (${escapeHtml(item.vendor_name || item.vendor_id)})
               </span>
+              ${item.nego_mode ? `
+                <div style="font-size: 0.68rem; color: #15803D; margin-top: 3px; font-weight: 700; background: #DCFCE7; padding: 2px 4px; border-radius: 4px; display: inline-block;">
+                  <i class="fa-solid fa-lock"></i> Laba Toko: Rp 10.000 | Setor Vendor: Rp ${(item.actual_price - 10000).toLocaleString('id-ID')}
+                </div>
+              ` : ''}
             ` : `
               <span class="ownership-pill ownership-owned" style="font-size: 0.65rem; padding: 1px 5px;">
                 Stok Sendiri
@@ -489,10 +519,12 @@ async function submitPosTransaction() {
 
   const discountPerUnit = totalQty > 0 ? (cashierDiscount / totalQty) : 0;
   for (let it of POS_STATE.cart) {
-    if (it.item_ownership === "CONSIGNMENT" && it.fixed_share > 0) {
+    if (it.item_ownership === "CONSIGNMENT" && it.fixed_share > 0 && !it.owner_override_approval) {
       const netPerUnit = it.actual_price - discountPerUnit;
       if (netPerUnit < it.fixed_share) {
-        return alert(`Transaksi DITOLAK: Diskon kasir menyebabkan harga bersih per unit untuk produk konsinyasi (${formatRupiah(netPerUnit)}) lebih rendah dari hak pokok vendor (${formatRupiah(it.fixed_share)}). Harap sesuaikan diskon.`);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i class="fa-solid fa-cash-register"></i> Simpan Transaksi & Cetak Struk`;
+        return alert(`Transaksi DITOLAK: Diskon kasir menyebabkan harga bersih per unit untuk produk titip jual (${formatRupiah(netPerUnit)}) lebih rendah dari hak pokok vendor (${formatRupiah(it.fixed_share)}). Harap sesuaikan diskon.`);
       }
     }
   }
@@ -512,12 +544,16 @@ async function submitPosTransaction() {
     idempotency_key: generateUUID(),
     created_by: POS_STATE.user.username || "KASIR",
     notes: `Transaksi POS Kasir (${paymentMethod})`,
+    owner_override_approval: POS_STATE.cart.some(it => it.owner_override_approval),
+    allow_below_min_price: POS_STATE.cart.some(it => it.owner_override_approval),
+    caller_token: POS_STATE.token,
     items: POS_STATE.cart.map(it => ({
       variant_id: it.variant_id,
       item_ownership: it.item_ownership,
       vendor_id: it.vendor_id || undefined,
       quantity: it.quantity,
-      actual_price: it.actual_price
+      actual_price: it.actual_price,
+      owner_override_approval: it.owner_override_approval || undefined
     }))
   };
 

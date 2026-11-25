@@ -427,25 +427,31 @@ const InventoryService = (function() {
       const price = Number(sellingPrice) || 0;
 
       // VALIDASI NEGOSIASI HARGA VENDOR:
-      // 1. Jika harga jual di bawah hak pokok vendor: MUTLAK DITOLAK
-      if (fixedShare > 0 && price < fixedShare) {
-        throw new Error("Transaksi konsinyasi ditolak: Harga jual negosiasi (Rp" + price.toLocaleString("id-ID") + ") lebih rendah dari hak pokok vendor (Rp" + fixedShare.toLocaleString("id-ID") + "). Penjualan akan menimbulkan kerugian langsung.");
+      // 1. Jika harga jual di bawah hak pokok vendor:
+      // Diizinkan hanya jika ada otorisasi Owner (allowBelowMinPrice === true): laba toko dikunci, sisa harga disetor ke vendor
+      if (fixedShare > 0 && price < fixedShare && !allowBelowMinPrice) {
+        throw new Error("Transaksi titip jual ditolak: Harga jual negosiasi (Rp" + price.toLocaleString("id-ID") + ") lebih rendah dari hak pokok vendor (Rp" + fixedShare.toLocaleString("id-ID") + "). Diperlukan otorisasi Owner untuk menyetujui penyesuaian setoran vendor.");
       }
 
       // 2. Jika harga jual di bawah batas minimum pemenuhan hak vendor + insentif CrocsCircle: DITOLAK
       // Kecuali jika ada otorisasi khusus Owner yang sah (allowBelowMinPrice === true)
       if (minPrice > 0 && price < minPrice && !allowBelowMinPrice) {
-        throw new Error("Transaksi konsinyasi ditolak: Harga jual negosiasi (Rp" + price.toLocaleString("id-ID") + ") berada di bawah batas minimum kesepakatan vendor " + vendorName + " (Rp" + minPrice.toLocaleString("id-ID") + "). Hak vendor: Rp" + fixedShare.toLocaleString("id-ID") + ", Insentif CrocsCircle: Rp" + feeValue.toLocaleString("id-ID") + ". Transaksi di bawah batas minimum memerlukan persetujuan khusus Owner.");
+        throw new Error("Transaksi titip jual ditolak: Harga jual negosiasi (Rp" + price.toLocaleString("id-ID") + ") berada di bawah batas minimum kesepakatan vendor " + vendorName + " (Rp" + minPrice.toLocaleString("id-ID") + "). Hak vendor: Rp" + fixedShare.toLocaleString("id-ID") + ", Insentif CrocsCircle: Rp" + feeValue.toLocaleString("id-ID") + ". Transaksi di bawah batas minimum memerlukan persetujuan khusus Owner.");
       }
 
       let vendorPayablePerUnit = fixedShare > 0 ? fixedShare : 0;
       let incentivePerUnit = feeValue;
 
       if (fixedShare > 0) {
-        // Model Fixed Guaranteed Share (seperti Dzaki Rp270.000):
-        // Hak Dzaki tetap Rp270.000, CrocsCircle mengambil sisa harga (price - fixedShare)
-        vendorPayablePerUnit = fixedShare;
-        incentivePerUnit = price - fixedShare;
+        if (price < fixedShare && allowBelowMinPrice) {
+          // Otorisasi Nego Khusus: Insentif CrocsCircle dikunci aman (feeValue), potongan harga ditanggung hak vendor
+          incentivePerUnit = feeValue;
+          vendorPayablePerUnit = Math.max(0, price - feeValue);
+        } else {
+          // Model Fixed Guaranteed Share standar:
+          vendorPayablePerUnit = fixedShare;
+          incentivePerUnit = price - fixedShare;
+        }
       } else {
         if (feeType === "PERCENTAGE") {
           incentivePerUnit = Math.round(price * (feeValue / 100));
@@ -472,6 +478,30 @@ const InventoryService = (function() {
           new_status: newRem === 0 ? "EXHAUSTED" : "ACTIVE"
         });
 
+        let lotVendorPayable = vendorPayablePerUnit;
+        let lotIncentive = incentivePerUnit;
+
+        // Dukungan Hak Vendor & Insentif yang Di-adjust Khusus per Lot (di-encode di reference_id)
+        if (lot.reference_id && typeof lot.reference_id === "string") {
+          const matchShare = lot.reference_id.match(/\[HAK_VENDOR:(\d+)\]/i);
+          const matchFee = lot.reference_id.match(/\[INSENTIF:(\d+)\]/i);
+          if (matchShare) {
+            const lotFixedShare = Number(matchShare[1]);
+            const lotFee = matchFee ? Number(matchFee[1]) : 10000;
+            if (price < lotFixedShare && allowBelowMinPrice) {
+              // Nego di bawah hak vendor dengan izin Owner: kunci insentif toko, sesuaikan setoran vendor
+              lotIncentive = lotFee;
+              lotVendorPayable = Math.max(0, price - lotFee);
+            } else {
+              lotVendorPayable = lotFixedShare;
+              lotIncentive = Math.max(0, price - lotVendorPayable);
+            }
+          } else if (matchFee) {
+            lotIncentive = Number(matchFee[1]);
+            lotVendorPayable = Math.max(0, price - lotIncentive);
+          }
+        }
+
         plannedAllocations.push({
           item_ownership: "CONSIGNMENT",
           vendor_id: vendorId,
@@ -479,14 +509,14 @@ const InventoryService = (function() {
           quantity: take,
           selling_price: price,
           hpp_unit: 0, // CrocsCircle HPP = 0
-          vendor_payable_unit: vendorPayablePerUnit,
-          crocs_incentive_unit: incentivePerUnit,
+          vendor_payable_unit: lotVendorPayable,
+          crocs_incentive_unit: lotIncentive,
           subtotal: take * price,
           total_hpp: 0,
-          total_vendor_payable: take * vendorPayablePerUnit,
-          total_crocs_incentive: take * incentivePerUnit,
+          total_vendor_payable: take * lotVendorPayable,
+          total_crocs_incentive: take * lotIncentive,
           vendor_paid_amount: 0,
-          vendor_remaining_payable: take * vendorPayablePerUnit,
+          vendor_remaining_payable: take * lotVendorPayable,
           settlement_status: "UNPAID"
         });
 

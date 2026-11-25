@@ -140,180 +140,245 @@
       </header>
 
       <!-- Metrics Row -->
-      <div class="exp-metrics-grid">
-        <div class="exp-metric-card">
+      <div class="exp-metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div class="exp-metric-card" style="border-left: 4px solid #7E22CE;">
           <div class="exp-metric-icon" style="background: #F3E8FF; color: #7E22CE;">
             <i class="fa-solid fa-receipt"></i>
           </div>
           <div>
-            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">TOTAL TRANSAKSI</div>
-            <div style="font-size: 1.35rem; font-weight: 800; color: #7E22CE;" id="metricExpCount">0</div>
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Transaksi Beban</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: #7E22CE;" id="metricExpCount">0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Transaksi tercatat</div>
           </div>
         </div>
-        <div class="exp-metric-card">
+        <div class="exp-metric-card" style="border-left: 4px solid #DC2626;">
           <div class="exp-metric-icon" style="background: #FEE2E2; color: #DC2626;">
             <i class="fa-solid fa-wallet"></i>
           </div>
           <div>
-            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">TOTAL PENGELUARAN (TERFILTER)</div>
-            <div style="font-size: 1.35rem; font-weight: 800; color: #DC2626;" id="metricExpTotal">Rp 0</div>
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Total Beban Operasional</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: #DC2626;" id="metricExpTotal">Rp 0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Pengurang laba kotor</div>
           </div>
         </div>
-        <div class="exp-metric-card">
-          <div class="exp-metric-icon" style="background: #E0E7FF; color: #4338CA;">
+        <div class="exp-metric-card" style="border-left: 4px solid #D97706;">
+          <div class="exp-metric-icon" style="background: #FEF3C7; color: #D97706;">
+            <i class="fa-solid fa-calculator"></i>
+          </div>
+          <div>
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Rata-Rata per Transaksi</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: #B45309;" id="metricExpAvg">Rp 0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Rerata biaya per nota</div>
+          </div>
+        </div>
+        <div class="exp-metric-card" style="border-left: 4px solid #2563EB;">
+          <div class="exp-metric-icon" style="background: #EFF6FF; color: #2563EB;">
             <i class="fa-solid fa-calendar-check"></i>
           </div>
           <div>
-            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">PERIODE FILTER</div>
-            <div style="font-size: 1rem; font-weight: 700; color: #1E1B4B;" id="metricExpPeriod">Bulan Ini</div>
+            <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Periode Filter</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #1E40AF;" id="metricExpPeriod">Bulan Ini</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">Status buku berjalan</div>
           </div>
         </div>
       </div>
 
       <div id="expAlertBox" style="display:none;" class="alert-box"></div>
 
-      <!-- Accounting Rule Notice -->
-      <div class="accounting-rule-box">
-        <i class="fa-solid fa-triangle-exclamation" style="margin-right: 0.5rem;"></i>
-        <strong>Aturan Akuntansi:</strong> Pembelian stok supplier atau pelunasan hutang vendor <u>tidak boleh</u> dicatat di sini. Pengadaan barang dicatat di menu <strong>Pembelian Stok</strong>, dan pelunasan konsinyasi dilakukan di tab <strong>Rekonsiliasi Vendor</strong> (Laporan Keuangan).
-      </div>
-
-      <!-- Form Section: Catat Pengeluaran -->
-      <div class="form-section">
-        <h3><i class="fa-solid fa-circle-plus"></i> Catat Pengeluaran Operasional Baru</h3>
-
-        <div class="form-row">
+      <!-- Accounting Rule Notice Banner -->
+      <div style="background: #FFFBEB; border: 1px solid #FDE68A; padding: 0.9rem 1.25rem; border-radius: 10px; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 0.85rem;">
+          <i class="fa-solid fa-circle-info" style="color: #D97706; font-size: 1.3rem;"></i>
           <div>
-            <label class="form-label">Kategori Pengeluaran *</label>
-            <select id="expCategory" class="form-input" onchange="checkForbiddenCategory()">
-              <option value="">— Pilih Kategori —</option>
-              <option value="PACKING">Packing &amp; Kemasan</option>
-              <option value="TRANSPORT">Transport &amp; Ongkir Ekspedisi</option>
-              <option value="SEWA">Sewa Tempat / Gudang</option>
-              <option value="LISTRIK">Listrik &amp; Air</option>
-              <option value="INTERNET">Internet &amp; Telepon</option>
-              <option value="GAJI">Gaji &amp; Honorarium</option>
-              <option value="MARKETING">Marketing &amp; Iklan Promosi</option>
-              <option value="ALAT_TULIS">Alat Tulis &amp; Supplies Kantor</option>
-              <option value="MAINTENANCE">Perawatan &amp; Perbaikan</option>
-              <option value="LAIN_LAIN">Lain-lain</option>
-            </select>
-          </div>
-          <div>
-            <label class="form-label">Tanggal Pengeluaran *</label>
-            <input type="date" id="expDate" class="form-input">
+            <strong style="color: #92400E; font-size: 0.88rem;">Prinsip Akuntansi Beban Usaha:</strong>
+            <div style="font-size: 0.82rem; color: #B45309; margin-top: 0.15rem;">
+              Beban operasional adalah biaya habis pakai rutin. Pengadaan barang stok sepatu dicatat di menu <strong>Pembelian Stok</strong>, dan pelunasan titip jual vendor dilakukan di <strong>Rekonsiliasi Vendor</strong>.
+            </div>
           </div>
         </div>
-
-        <div id="forbiddenCategoryWarning" style="display:none;" class="alert-box alert-error">
-          <i class="fa-solid fa-ban"></i>
-          <span>Kategori ini DILARANG masuk pengeluaran operasional. Gunakan menu Pembelian Stok untuk mencatat pengadaan barang atau tab Rekonsiliasi Vendor di Laporan Keuangan untuk settlement.</span>
-        </div>
-
-        <div class="form-row">
-          <div>
-            <label class="form-label">Aktivitas / Sub-Kategori *</label>
-            <input type="text" id="expActivity" class="form-input" placeholder="Contoh: Beli lakban & kardus 50 pcs">
-          </div>
-          <div>
-            <label class="form-label">Jumlah (Rp) *</label>
-            <input type="number" id="expAmount" class="form-input" placeholder="0" min="1">
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div>
-            <label class="form-label">Metode Pembayaran *</label>
-            <select id="expPaymentMethod" class="form-input">
-              <option value="CASH">Tunai (Cash Toko)</option>
-              <option value="TRANSFER_BCA">Transfer BCA</option>
-              <option value="TRANSFER_BRI">Transfer BRI</option>
-              <option value="TRANSFER_MANDIRI">Transfer Mandiri</option>
-              <option value="QRIS">QRIS</option>
-              <option value="DEBIT">Kartu Debit</option>
-            </select>
-          </div>
-          <div>
-            <label class="form-label">Dibayar Oleh</label>
-            <input type="text" id="expPaidBy" class="form-input" placeholder="Nama staf / kasir / owner">
-          </div>
-        </div>
-
-        <div class="form-row-full">
-          <label class="form-label">Deskripsi Lengkap</label>
-          <input type="text" id="expDescription" class="form-input" placeholder="Deskripsi singkat keperluan pengeluaran">
-        </div>
-        <div class="form-row-full">
-          <label class="form-label">Catatan Tambahan (Opsional)</label>
-          <input type="text" id="expNotes" class="form-input" placeholder="Nomor nota, referensi transfer, atau catatan internal">
-        </div>
-
-        <div style="display: flex; justify-content: flex-end; margin-top: 0.5rem;">
-          <button class="submit-btn" id="createExpenseBtn" onclick="submitCreateExpense()" style="background: #7E22CE;">
-            <i class="fa-solid fa-floppy-disk"></i> Simpan Pengeluaran
-          </button>
+        <div style="display: flex; gap: 0.5rem;">
+          <a href="purchases.html" class="btn btn-outline" style="white-space: nowrap; font-size: 0.8rem; border-color: #F59E0B; color: #B45309; background: white; padding: 0.4rem 0.8rem;">
+            <i class="fa-solid fa-truck-ramp-box"></i> Pembelian Stok
+          </a>
+          <a href="finance.html#vendor" class="btn btn-outline" style="white-space: nowrap; font-size: 0.8rem; border-color: #8B5CF6; color: #6D28D9; background: white; padding: 0.4rem 0.8rem;">
+            <i class="fa-solid fa-handshake"></i> Rekonsiliasi Vendor
+          </a>
         </div>
       </div>
 
-      <!-- Filter & List: Pengeluaran -->
-      <div class="form-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
-          <h3 style="margin: 0;"><i class="fa-solid fa-list"></i> Riwayat Pengeluaran Operasional</h3>
-          <button onclick="loadExpenseList()" style="background: #7E22CE; color: white; border: none; border-radius: 6px; padding: 0.4rem 0.9rem; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
-            <i class="fa-solid fa-rotate"></i> Muat Ulang
+      <!-- Form Section: Catat Pengeluaran Baru -->
+      <div class="admin-card" style="margin-bottom: 1.5rem;">
+        <div class="admin-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; color: var(--primary);"><i class="fa-solid fa-circle-plus"></i> Form Catat Pengeluaran Operasional Baru</h3>
+            <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">Catat beban operasional harian secara akurat untuk pembukuan laba rugi.</p>
+          </div>
+          <button type="button" onclick="resetExpenseForm()" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">
+            <i class="fa-solid fa-rotate-left"></i> Reset Form
           </button>
         </div>
 
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
-          <select id="filterExpMonth" class="form-input" style="width: auto; padding: 0.4rem 0.6rem;" onchange="loadExpenseList()">
-            <option value="">Semua Bulan</option>
-            <option value="1">Januari</option><option value="2">Februari</option>
-            <option value="3">Maret</option><option value="4">April</option>
-            <option value="5">Mei</option><option value="6">Juni</option>
-            <option value="7">Juli</option><option value="8">Agustus</option>
-            <option value="9">September</option><option value="10">Oktober</option>
-            <option value="11">November</option><option value="12">Desember</option>
-          </select>
-          <select id="filterExpYear" class="form-input" style="width: auto; padding: 0.4rem 0.6rem;" onchange="loadExpenseList()">
-            <option value="">Semua Tahun</option>
-            <option value="2026">2026</option>
-            <option value="2027">2027</option>
-          </select>
-          <select id="filterExpCategory" class="form-input" style="width: auto; padding: 0.4rem 0.6rem;" onchange="loadExpenseList()">
-            <option value="">Semua Kategori</option>
-            <option value="PACKING">Packing &amp; Kemasan</option>
-            <option value="TRANSPORT">Transport &amp; Ongkir</option>
-            <option value="SEWA">Sewa Tempat</option>
-            <option value="LISTRIK">Listrik &amp; Air</option>
-            <option value="INTERNET">Internet</option>
-            <option value="GAJI">Gaji &amp; Honor</option>
-            <option value="MARKETING">Marketing &amp; Iklan</option>
-            <option value="ALAT_TULIS">Alat Tulis</option>
-            <option value="MAINTENANCE">Perawatan</option>
-            <option value="LAIN_LAIN">Lain-lain</option>
-          </select>
+        <form id="expenseForm" onsubmit="event.preventDefault(); submitCreateExpense();" style="padding: 1.25rem;">
+          <!-- Row 1: Kategori, Tanggal, Nominal -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem; color: var(--text-main);">Kategori Pengeluaran: *</label>
+              <select id="expCategory" class="form-input" required onchange="checkForbiddenCategory()" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; background: white; font-size: 0.88rem;">
+                <option value="">— Pilih Kategori Beban —</option>
+                <option value="PACKING">📦 Packing &amp; Kemasan</option>
+                <option value="TRANSPORT">🚗 Transport &amp; Ongkir Ekspedisi</option>
+                <option value="SEWA">🏢 Sewa Tempat / Gudang</option>
+                <option value="LISTRIK">⚡ Listrik &amp; Air</option>
+                <option value="INTERNET">🌐 Internet &amp; Telepon</option>
+                <option value="GAJI">👥 Gaji &amp; Honorarium</option>
+                <option value="MARKETING">📢 Marketing &amp; Iklan Promosi</option>
+                <option value="ALAT_TULIS">📝 Alat Tulis &amp; Supplies Kantor</option>
+                <option value="MAINTENANCE">🔧 Perawatan &amp; Perbaikan</option>
+                <option value="LAIN_LAIN">📌 Beban Operasional Lainnya</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem; color: var(--text-main);">Tanggal Transaksi: *</label>
+              <input type="date" id="expDate" required class="form-input" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.88rem;">
+            </div>
+            <div>
+              <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem; color: var(--text-main);">Jumlah Nominal (Rp): *</label>
+              <input type="number" id="expAmount" required min="1" placeholder="Contoh: 85000" class="form-input" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700; font-size: 1rem; color: #DC2626;">
+            </div>
+          </div>
+
+          <div id="forbiddenCategoryWarning" style="display:none; background: #FEE2E2; border: 1px solid #FECACA; color: #B91C1C; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.85rem; margin-bottom: 1rem; align-items: center; gap: 0.5rem;">
+            <i class="fa-solid fa-ban" style="font-size: 1.1rem;"></i>
+            <span><strong>Kategori Ditolak:</strong> Pembelian stok barang dicatat di menu <strong>Pembelian Stok</strong>, dan pembayaran partner konsinyasi dicatat di tab <strong>Rekonsiliasi Vendor</strong>.</span>
+          </div>
+
+          <!-- Row 2: Aktivitas, Metode Pembayaran, Dibayar Oleh -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem; color: var(--text-main);">Aktivitas / Keperluan Spesifik: *</label>
+              <input type="text" id="expActivity" required class="form-input" placeholder="Contoh: Beli lakban &amp; kardus 50 pcs" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.88rem;">
+            </div>
+            <div>
+              <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem; color: var(--text-main);">Metode Pembayaran (Sumber Kas): *</label>
+              <select id="expPaymentMethod" required class="form-input" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; background: white; font-size: 0.88rem;">
+                <option value="CASH">💵 Tunai (Cash Toko)</option>
+                <option value="TRANSFER_BCA">💳 Transfer BCA</option>
+                <option value="TRANSFER_BRI">💳 Transfer BRI</option>
+                <option value="TRANSFER_MANDIRI">💳 Transfer Mandiri</option>
+                <option value="QRIS">📱 QRIS Toko</option>
+                <option value="DEBIT">💳 Kartu Debit</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem; color: var(--text-main);">Dibayar Oleh (Penanggung Dana):</label>
+              <input type="text" id="expPaidBy" class="form-input" placeholder="Contoh: Cash Hafiz / Kasir Toko" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.88rem;">
+            </div>
+          </div>
+
+          <!-- Row 3: Deskripsi & Catatan Tambahan -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+              <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem; color: var(--text-main);">Deskripsi Lengkap Keperluan:</label>
+              <input type="text" id="expDescription" class="form-input" placeholder="Keterangan singkat keperluan pengeluaran" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.88rem;">
+            </div>
+            <div>
+              <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem; color: var(--text-main);">Catatan / No. Nota / Bukti Transfer (Opsional):</label>
+              <input type="text" id="expNotes" class="form-input" placeholder="Nomor nota, referensi mutasi, atau catatan internal" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.88rem;">
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+            <button type="button" onclick="resetExpenseForm()" class="btn btn-outline">Batal</button>
+            <button type="submit" class="btn btn-primary" id="createExpenseBtn" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 700;">
+              <i class="fa-solid fa-floppy-disk"></i> Simpan Pengeluaran Operasional
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Filter & List: Riwayat Pengeluaran -->
+      <div class="admin-card">
+        <div class="admin-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; color: var(--primary);"><i class="fa-solid fa-list-check"></i> Riwayat Pengeluaran Operasional</h3>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Daftar seluruh beban operasional usaha harian yang tercatat di pembukuan.</span>
+          </div>
+          <button onclick="loadExpenseList()" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.82rem; font-weight: 600;">
+            <i class="fa-solid fa-rotate"></i> Muat Ulang Data
+          </button>
         </div>
 
-        <div id="expTotalRow" style="display:none; background: #F0FDF4; border: 1px solid #A7F3D0; border-radius: 8px; padding: 0.6rem 1rem; margin-bottom: 0.75rem; font-size: 0.85rem; color: #065F46; font-weight: 700;">
-          Total Pengeluaran Terfilter: <span id="expTotalAmount">Rp 0</span>
+        <!-- Filter Toolbar -->
+        <div style="padding: 1.25rem 1.25rem 0.5rem 1.25rem;">
+          <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem 1rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
+            <div style="flex: 1; min-width: 220px; position: relative;">
+              <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #94A3B8;"></i>
+              <input type="text" id="filterExpSearch" placeholder="Cari aktivitas, keperluan, penanggung dana..." style="width: 100%; padding: 0.55rem 0.85rem 0.55rem 2.25rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem;" oninput="onSearchExpenseInput()">
+            </div>
+            <div>
+              <select id="filterExpMonth" class="form-input" style="padding: 0.55rem 0.75rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px; background: white;" onchange="loadExpenseList()">
+                <option value="">Semua Bulan</option>
+                <option value="1">Januari</option><option value="2">Februari</option>
+                <option value="3">Maret</option><option value="4">April</option>
+                <option value="5">Mei</option><option value="6">Juni</option>
+                <option value="7">Juli</option><option value="8">Agustus</option>
+                <option value="9">September</option><option value="10">Oktober</option>
+                <option value="11">November</option><option value="12">Desember</option>
+              </select>
+            </div>
+            <div>
+              <select id="filterExpYear" class="form-input" style="padding: 0.55rem 0.75rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px; background: white;" onchange="loadExpenseList()">
+                <option value="">Semua Tahun</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+              </select>
+            </div>
+            <div>
+              <select id="filterExpCategory" class="form-input" style="padding: 0.55rem 0.75rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px; background: white;" onchange="loadExpenseList()">
+                <option value="">Semua Kategori</option>
+                <option value="PACKING">Packing &amp; Kemasan</option>
+                <option value="TRANSPORT">Transport &amp; Ongkir</option>
+                <option value="SEWA">Sewa Tempat</option>
+                <option value="LISTRIK">Listrik &amp; Air</option>
+                <option value="INTERNET">Internet</option>
+                <option value="GAJI">Gaji &amp; Honor</option>
+                <option value="MARKETING">Marketing &amp; Iklan</option>
+                <option value="ALAT_TULIS">Alat Tulis</option>
+                <option value="MAINTENANCE">Perawatan</option>
+                <option value="LAIN_LAIN">Lain-lain</option>
+              </select>
+            </div>
+            <button onclick="resetExpenseFilters()" class="btn btn-outline" style="padding: 0.55rem 0.85rem; font-size: 0.82rem;" title="Reset Filter">
+              <i class="fa-solid fa-filter-circle-xmark"></i> Reset
+            </button>
+          </div>
+
+          <!-- Total Terfilter Summary Banner -->
+          <div id="expTotalRow" style="display:none; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; padding: 0.75rem 1.25rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.88rem;">
+            <div style="color: #065F46; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-coins" style="color: #059669;"></i>
+              <span>Total Beban Operasional Terfilter:</span>
+            </div>
+            <div id="expTotalAmount" style="font-size: 1.15rem; font-weight: 800; color: #047857;">Rp 0</div>
+          </div>
         </div>
 
-        <div style="overflow-x: auto;">
-          <table class="data-table items-table">
+        <div style="overflow-x: auto; padding: 0 1.25rem 1.25rem 1.25rem;">
+          <table class="admin-table">
             <thead>
               <tr>
-                <th>ID Pengeluaran</th>
-                <th>Tanggal</th>
-                <th>Kategori</th>
-                <th>Aktivitas</th>
-                <th>Jumlah</th>
-                <th>Metode Bayar</th>
-                <th>Dibayar Oleh</th>
-                <th>Deskripsi &amp; Catatan</th>
+                <th style="min-width: 130px;">ID Pengeluaran</th>
+                <th style="text-align: center; min-width: 105px;">Tanggal</th>
+                <th style="text-align: center; min-width: 130px;">Kategori</th>
+                <th style="min-width: 160px;">Aktivitas &amp; Keperluan</th>
+                <th style="text-align: right; min-width: 130px;">Jumlah Beban</th>
+                <th style="text-align: center; min-width: 110px;">Metode Bayar</th>
+                <th style="min-width: 130px;">Dibayar Oleh</th>
+                <th style="min-width: 200px;">Deskripsi &amp; Bukti</th>
               </tr>
             </thead>
             <tbody id="expensesTableBody">
-              <tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2rem;">Memuat data pengeluaran...</td></tr>
+              <tr><td colspan="8" style="text-align:center; color: var(--text-muted); padding: 2.5rem;"><i class="fa-solid fa-spinner fa-spin"></i> Memuat data pengeluaran operasional...</td></tr>
             </tbody>
           </table>
         </div>

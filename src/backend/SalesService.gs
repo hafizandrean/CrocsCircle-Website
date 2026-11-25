@@ -148,15 +148,6 @@ const SalesService = (function() {
             const vendorId = item.vendor_id;
             if (!vendorId) throw new Error("Item titipan vendor ke-" + (i + 1) + " wajib menyertakan vendor_id.");
 
-            // Proteksi Diskon Konsinyasi: Harga bersih setelah diskon tidak boleh lebih rendah dari hak pokok vendor
-            const vendorRow = DatabaseHelper.getRowByPk("VENDORS", "vendor_id", vendorId);
-            if (vendorRow && vendorRow.fixed_vendor_share) {
-              const fixedShare = Number(vendorRow.fixed_vendor_share) || 0;
-              if (fixedShare > 0 && actualPrice < fixedShare) {
-                throw new Error("Diskon ditolak: Harga bersih item konsinyasi (Rp" + actualPrice.toLocaleString("id-ID") + ") tidak boleh lebih rendah dari hak pokok vendor " + (vendorRow.vendor_name || vendorId) + " (Rp" + fixedShare.toLocaleString("id-ID") + ").");
-              }
-            }
-
             // Penentuan izin harga di bawah batas minimum (khusus persetujuan Owner yang sah)
             let allowBelowMinPrice = false;
             if (saleData.owner_override_approval === true || saleData.allow_below_min_price === true || item.owner_override_approval === true) {
@@ -169,6 +160,15 @@ const SalesService = (function() {
                 allowBelowMinPrice = true;
               } else {
                 throw new Error("Otorisasi harga di bawah batas minimum ditolak: Fitur ini hanya dapat disetujui oleh Owner.");
+              }
+            }
+
+            // Proteksi Diskon Konsinyasi: Jika tidak ada otorisasi Owner, harga bersih tidak boleh lebih rendah dari hak pokok vendor
+            const vendorRow = DatabaseHelper.getRowByPk("VENDORS", "vendor_id", vendorId);
+            if (vendorRow && vendorRow.fixed_vendor_share && !allowBelowMinPrice) {
+              const fixedShare = Number(vendorRow.fixed_vendor_share) || 0;
+              if (fixedShare > 0 && actualPrice < fixedShare) {
+                throw new Error("Diskon ditolak: Harga bersih item konsinyasi (Rp" + actualPrice.toLocaleString("id-ID") + ") tidak boleh lebih rendah dari hak pokok vendor " + (vendorRow.vendor_name || vendorId) + " (Rp" + fixedShare.toLocaleString("id-ID") + ").");
               }
             }
 

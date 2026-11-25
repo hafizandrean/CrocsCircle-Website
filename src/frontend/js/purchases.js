@@ -173,7 +173,7 @@ function populateVendorDropdowns() {
   }
 
   if (newInvoiceVendorSelect) {
-    newInvoiceVendorSelect.innerHTML = '<option value="">— Pilih Supplier dari Manajemen Vendor —</option>' +
+    newInvoiceVendorSelect.innerHTML = '<option value="">— Pilih Supplier Terdaftar —</option>' +
       vendorsList.map(v => `<option value="${v.vendor_id}" data-name="${v.vendor_name}">${v.vendor_name} (${v.vendor_id})</option>`).join('');
   }
 }
@@ -401,8 +401,9 @@ async function onProductSelectChange(rowIdx) {
         headers: { 'Authorization': 'Bearer ' + currentToken }
       });
       const data = await res.json();
-      if (data.success && Array.isArray(data.variants)) {
-        variants = data.variants.filter(v => v.is_active === true || v.is_active === 'true' || v.is_active === 1 || v.is_active === undefined);
+      const rawVariants = (data.data && Array.isArray(data.data.variants)) ? data.data.variants : (Array.isArray(data.variants) ? data.variants : []);
+      if (data.success && rawVariants.length > 0) {
+        variants = rawVariants.filter(v => v.is_active === true || v.is_active === 'true' || v.is_active === 1 || v.is_active === undefined);
         variantsCache[productId] = variants;
       }
     }

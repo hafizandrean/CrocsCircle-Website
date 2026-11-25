@@ -171,7 +171,7 @@
           <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">Laba Rugi Baku, Arus Kas Mandiri, Rekonsiliasi Vendor & Tutup Buku Multi-Versi</p>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
           <!-- Period Selector -->
           <div style="display: flex; align-items: center; gap: 0.5rem; background: white; padding: 0.35rem 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border);">
             <i class="fa-regular fa-calendar" style="color: var(--accent);"></i>
@@ -184,6 +184,13 @@
               <option value="2026" selected>2026</option>
             </select>
           </div>
+
+          <!-- Tombol Langsung Lihat Database Spreadsheet / Excel -->
+          <button type="button" onclick="openSpreadsheetModal()" class="btn" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #0F766E; color: white; padding: 0.45rem 0.95rem; border-radius: var(--radius-md); font-size: 0.82rem; font-weight: 700; border: 1px solid #115E59; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--shadow-sm);" title="Buka Spreadsheet Database / Unduh Excel">
+            <i class="fa-solid fa-file-excel" style="color: #6EE7B7; font-size: 1rem;"></i>
+            <span>Buka Spreadsheet / Excel</span>
+            <i class="fa-solid fa-arrow-up-right-from-square" style="font-size: 0.7rem; opacity: 0.85;"></i>
+          </button>
 
           <div style="display: flex; gap: 0.75rem; align-items: center; background: white; padding: 0.45rem 1rem; border-radius: var(--radius-full); border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
             <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;" id="userAvatar">H</div>
@@ -204,7 +211,7 @@
           <i class="fa-solid fa-money-bill-transfer"></i> Arus Kas (Cash Flow)
         </button>
         <button class="tab-btn" id="tabBtnVendor" onclick="switchTab('vendor')">
-          <i class="fa-solid fa-handshake"></i> Rekonsiliasi Vendor
+          <i class="fa-solid fa-handshake"></i> Rekonsiliasi Titip Jual
         </button>
         <button class="tab-btn" id="tabBtnClosing" onclick="switchTab('closing')">
           <i class="fa-solid fa-book-bookmark"></i> Tutup Buku & Alokasi
@@ -457,56 +464,138 @@
         </div>
       </div>
 
-      <!-- TAB 3: REKONSILIASI VENDOR -->
+      <!-- TAB 3: REKONSILIASI VENDOR / TITIP JUAL -->
       <div id="tabContentVendor" style="display: none;">
         <div class="fin-card" style="margin-bottom: 1.5rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
             <div>
-              <h3 style="margin: 0; font-size: 1.1rem;"><i class="fa-solid fa-handshake" style="color: var(--primary);"></i> Rekonsiliasi Partner Konsinyasi: Dzaki (Jaki)</h3>
-              <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Hak Bersih: Rp270.000 / unit | Insentif Jual CrocsCircle: Rp10.000 / unit</p>
+              <h3 style="margin: 0; font-size: 1.15rem;" id="vndPartnerTitle"><i class="fa-solid fa-handshake" style="color: var(--primary);"></i> Rekonsiliasi Partner Titip Jual: Dzaki (Jaki)</h3>
+              <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;" id="vndPartnerSubtitle">
+                Bagi hasil fleksibel per produk (harga normal beragam Rp 280k, Rp 380k, Rp 450k+, mendukung negosiasi kasir). Laba/insentif toko tetap terlindungi.
+              </p>
             </div>
             <button class="btn btn-primary" onclick="openSettlementModal()">
               <i class="fa-solid fa-money-bill-transfer"></i> Eksekusi Settlement Baru
             </button>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
-            <div style="background: #F8FAFC; padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
-              <span style="font-size: 0.75rem; color: var(--text-muted);">TOTAL KEWAJIBAN KOTOR (GROSS)</span>
-              <div style="font-size: 1.3rem; font-weight: 800; color: var(--text-main);" id="vndGrossPayable">Rp0</div>
-              <span style="font-size: 0.72rem; color: var(--text-muted);">Unit terjual yang menjadi hak vendor</span>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+            <div style="background: #F8FAFC; padding: 1rem; border-radius: 8px; border: 1px solid var(--border); border-left: 4px solid var(--primary);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Total Kewajiban Kotor (Gross)</span>
+              <div style="font-size: 1.35rem; font-weight: 800; color: var(--text-main); margin-top: 0.25rem;" id="vndGrossPayable">Rp0</div>
+              <span style="font-size: 0.72rem; color: var(--text-muted);">Akumulasi hak partner dari unit terjual</span>
             </div>
-            <div style="background: #F8FAFC; padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
-              <span style="font-size: 0.75rem; color: var(--text-muted);">POTONGAN KLAIM RETUR</span>
-              <div style="font-size: 1.3rem; font-weight: 800; color: #DC2626;" id="vndClaimsDeducted">Rp0</div>
+            <div style="background: #F8FAFC; padding: 1rem; border-radius: 8px; border: 1px solid var(--border); border-left: 4px solid #DC2626;">
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Potongan Klaim Retur</span>
+              <div style="font-size: 1.35rem; font-weight: 800; color: #DC2626; margin-top: 0.25rem;" id="vndClaimsDeducted">Rp0</div>
               <span style="font-size: 0.72rem; color: var(--text-muted);">Kompensasi piutang retur barang rusak</span>
             </div>
-            <div style="background: #ECFDF5; padding: 1rem; border-radius: 8px; border: 1px solid #A7F3D0;">
-              <span style="font-size: 0.75rem; color: #065F46;">NET TRANSFER DISETOR KE VENDOR</span>
-              <div style="font-size: 1.3rem; font-weight: 800; color: #059669;" id="vndNetPayout">Rp0</div>
-              <span style="font-size: 0.72rem; color: #047857;">Gross - Potongan klaim</span>
+            <div style="background: #ECFDF5; padding: 1rem; border-radius: 8px; border: 1px solid #A7F3D0; border-left: 4px solid #059669;">
+              <span style="font-size: 0.75rem; color: #065F46; font-weight: 700; text-transform: uppercase;">Net Transfer Disetor ke Partner</span>
+              <div style="font-size: 1.35rem; font-weight: 800; color: #059669; margin-top: 0.25rem;" id="vndNetPayout">Rp0</div>
+              <span style="font-size: 0.72rem; color: #047857;">Gross dikurangi potongan klaim</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Detail Transaksi Penjualan Barang Titip Jual -->
+        <div class="fin-card" style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+              <h3 style="margin: 0; font-size: 1.1rem; color: var(--primary);">
+                <i class="fa-solid fa-boxes-packing"></i> Rincian Transaksi Penjualan Barang Titip Jual
+              </h3>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">
+                Daftar fisik barang titip jual yang telah laku di kasir (POS), harga normal vs harga laku riil (setelah nego), insentif toko, dan hak bersih partner.
+              </p>
+            </div>
+            <!-- Quick Stats Badges -->
+            <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+              <div style="background: #EFF6FF; border: 1px solid #BFDBFE; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.78rem;">
+                <span style="color: #1E40AF; font-weight: 600;">Total Laku:</span>
+                <strong id="badgeSoldUnits" style="color: #1D4ED8; margin-left: 3px;">0 psg</strong>
+              </div>
+              <div style="background: #ECFDF5; border: 1px solid #A7F3D0; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.78rem;">
+                <span style="color: #065F46; font-weight: 600;">Laba Toko:</span>
+                <strong id="badgeStoreIncentive" style="color: #047857; margin-left: 3px;">Rp 0</strong>
+              </div>
+              <div style="background: #FEF3C7; border: 1px solid #FDE68A; padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.78rem;">
+                <span style="color: #92400E; font-weight: 600;">Hak Partner:</span>
+                <strong id="badgePartnerPayable" style="color: #B45309; margin-left: 3px;">Rp 0</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filter Toolbar for Sold Titip Jual Items -->
+          <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem 1rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
+            <div style="flex: 1; min-width: 220px; position: relative;">
+              <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: #94A3B8;"></i>
+              <input type="text" id="filterSoldSearch" placeholder="Cari nama sepatu, varian, SKU, ID penjualan..." style="width: 100%; padding: 0.5rem 0.85rem 0.5rem 2.25rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem;" oninput="onFilterSoldItems()">
+            </div>
+            <div>
+              <select id="filterSoldStatus" class="form-input" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px; background: white;" onchange="onFilterSoldItems()">
+                <option value="ALL">Semua Status Setoran</option>
+                <option value="UNPAID">⏳ Belum Disetor (Outstanding)</option>
+                <option value="PAID">✅ Sudah Disetor (Settled)</option>
+              </select>
+            </div>
+            <div>
+              <select id="filterSoldNego" class="form-input" style="padding: 0.5rem 0.75rem; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 6px; background: white;" onchange="onFilterSoldItems()">
+                <option value="ALL">Semua Harga Jual</option>
+                <option value="NEGOTIATED">🏷️ Transaksi Nego / Diskon</option>
+                <option value="NORMAL">Normal / Sesuai Katalog</option>
+              </select>
+            </div>
+            <button onclick="resetSoldFilters()" class="btn btn-outline" style="padding: 0.5rem 0.75rem; font-size: 0.82rem;" title="Reset Filter">
+              <i class="fa-solid fa-rotate-left"></i> Reset
+            </button>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th style="min-width: 140px;">ID Penjualan &amp; Waktu</th>
+                  <th style="min-width: 190px;">Produk &amp; Varian</th>
+                  <th style="text-align: center; min-width: 65px;">Qty</th>
+                  <th style="text-align: right; min-width: 110px;">Harga Normal</th>
+                  <th style="text-align: right; min-width: 135px;">Harga Laku (Realisasi)</th>
+                  <th style="text-align: center; min-width: 135px;">Laba CrocsCircle</th>
+                  <th style="text-align: right; min-width: 120px;">Hak Bersih Partner</th>
+                  <th style="text-align: right; min-width: 130px;">Total Setor Partner</th>
+                  <th style="text-align: center; min-width: 120px;">Status Setor</th>
+                </tr>
+              </thead>
+              <tbody id="vndSoldItemsTableBody">
+                <tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">Memuat rincian transaksi barang titip jual...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
         <!-- Settlement History Table -->
         <div class="fin-card">
-          <h3 style="font-size: 1rem; margin-bottom: 1rem;"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Settlement Pembayaran Vendor</h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div>
+              <h3 style="font-size: 1.05rem; margin: 0;"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Settlement Pembayaran Partner</h3>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Daftar pembayaran transfer bagi hasil yang telah dieksekusi secara resmi.</p>
+            </div>
+          </div>
           <div style="overflow-x: auto;">
             <table class="admin-table">
               <thead>
                 <tr>
                   <th>No. Settlement</th>
                   <th>Tanggal</th>
-                  <th>Gross Payable</th>
-                  <th>Potongan Klaim</th>
-                  <th>Net Disetor</th>
-                  <th>Metode</th>
-                  <th>Status</th>
+                  <th style="text-align: right;">Gross Payable</th>
+                  <th style="text-align: right;">Potongan Klaim</th>
+                  <th style="text-align: right;">Net Disetor</th>
+                  <th style="text-align: center;">Metode Bayar</th>
+                  <th style="text-align: center;">Status</th>
                 </tr>
               </thead>
               <tbody id="vndSettlementTableBody">
-                <tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Belum ada riwayat settlement pada periode ini.</td></tr>
+                <tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Belum ada riwayat settlement pada periode ini.</td></tr>
               </tbody>
             </table>
           </div>
@@ -760,6 +849,65 @@
       <div style="padding: 1rem 1.25rem; background: #F8FAFC; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 0.5rem;">
         <button onclick="closeModal('modalWithdraw')" class="btn btn-secondary">Batal</button>
         <button onclick="submitWithdraw()" class="btn btn-primary"><i class="fa-solid fa-check"></i> Catat Penarikan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 5: AKSES SPREADSHEET & EXPORT EXCEL -->
+  <div class="modal-overlay" id="modalSpreadsheet" style="display: none;">
+    <div class="modal-content" style="max-width: 520px;">
+      <div style="padding: 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 1.15rem; color: #0F766E; display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-file-excel"></i> Database Spreadsheet &amp; Excel
+        </h3>
+        <button onclick="closeModal('modalSpreadsheet')" style="border: none; background: none; font-size: 1.2rem; cursor: pointer;">&times;</button>
+      </div>
+      <div style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1.25rem;">
+        
+        <!-- Opsi 1: Buka Google Sheets Langsung di Browser -->
+        <div style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <strong style="color: #166534; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka Google Sheets Online
+            </strong>
+            <span style="font-size: 0.7rem; background: #DCFCE7; color: #15803D; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Live Database</span>
+          </div>
+          <p style="font-size: 0.8rem; color: #14532D; margin: 0 0 0.75rem 0;">
+            Akses langsung spreadsheet database 21 tabel CrocsCircle.ID di Google Drive (Google Sheets).
+          </p>
+          <div style="margin-bottom: 0.75rem;">
+            <label style="font-size: 0.75rem; font-weight: 700; color: #166534; display: block; margin-bottom: 0.25rem;">URL Google Sheets:</label>
+            <input type="url" id="spreadsheetUrlInput" placeholder="https://docs.google.com/spreadsheets/d/..." class="form-control" style="width: 100%; padding: 0.5rem; font-size: 0.82rem; border: 1px solid #86EFAC; border-radius: 6px;" />
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button onclick="saveAndOpenSpreadsheet()" class="btn btn-primary" style="flex: 1; padding: 0.55rem; font-size: 0.85rem; background: #16A34A; border-color: #15803D; font-weight: 700;">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka Spreadsheet Sekarang
+            </button>
+            <button onclick="saveSpreadsheetUrlOnly()" class="btn btn-outline" style="padding: 0.55rem 0.85rem; font-size: 0.82rem;" title="Simpan Tautan Saja">
+              <i class="fa-solid fa-floppy-disk"></i> Simpan
+            </button>
+          </div>
+        </div>
+
+        <!-- Opsi 2: Download / Unduh Rekap Excel (CSV) -->
+        <div style="background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <strong style="color: var(--text-main); font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
+              <i class="fa-solid fa-download"></i> Unduh Laporan ke Excel (.CSV)
+            </strong>
+            <span style="font-size: 0.7rem; background: #E2E8F0; color: #475569; padding: 2px 6px; border-radius: 4px; font-weight: 700;">Offline File</span>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0 0 0.75rem 0;">
+            Download file rekap pembukuan periode berjalan (Laba Rugi, Beban Usaha, Arus Kas, &amp; Rincian Titip Jual) untuk dibuka langsung di Microsoft Excel.
+          </p>
+          <button onclick="downloadFinancialExcel()" class="btn btn-outline" style="width: 100%; padding: 0.6rem; font-size: 0.85rem; font-weight: 700; color: #0F766E; border-color: #0F766E;">
+            <i class="fa-solid fa-file-csv" style="font-size: 1.1rem; color: #0F766E;"></i> Download Rekap Laporan Keuangan (.csv)
+          </button>
+        </div>
+
+      </div>
+      <div style="padding: 0.85rem 1.25rem; background: #F8FAFC; border-top: 1px solid var(--border); display: flex; justify-content: flex-end;">
+        <button onclick="closeModal('modalSpreadsheet')" class="btn btn-secondary" style="font-size: 0.85rem;">Tutup</button>
       </div>
     </div>
   </div>

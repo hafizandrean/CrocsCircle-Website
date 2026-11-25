@@ -18,6 +18,37 @@ function formatRupiah(number) {
   }).format(number || 0);
 }
 
+// Helper: Image Parsers
+function getPrimaryImageUrl(imageUrl) {
+  if (!imageUrl) return "";
+  if (Array.isArray(imageUrl)) return imageUrl[0] || "";
+  if (typeof imageUrl === "string" && imageUrl.startsWith("[")) {
+    try {
+      const arr = JSON.parse(imageUrl);
+      if (Array.isArray(arr) && arr.length > 0) return arr[0];
+    } catch (e) {}
+  }
+  if (typeof imageUrl === "string" && imageUrl.includes(",")) {
+    return imageUrl.split(",")[0].trim();
+  }
+  return imageUrl;
+}
+
+function getAllProductImages(imageUrl) {
+  if (!imageUrl) return [];
+  if (Array.isArray(imageUrl)) return imageUrl.filter(Boolean);
+  if (typeof imageUrl === "string" && imageUrl.startsWith("[")) {
+    try {
+      const arr = JSON.parse(imageUrl);
+      if (Array.isArray(arr)) return arr.filter(Boolean);
+    } catch (e) {}
+  }
+  if (typeof imageUrl === "string" && imageUrl.includes(",")) {
+    return imageUrl.split(",").map(s => s.trim()).filter(Boolean);
+  }
+  return [imageUrl].filter(Boolean);
+}
+
 // Fetch Catalog from Backend API
 async function loadCatalog() {
   const grid = document.getElementById("productGrid");
@@ -178,6 +209,7 @@ function renderProducts() {
       : `${formatRupiah(p.price_range.min_price)} - ${formatRupiah(p.price_range.max_price)}`;
 
     const availableSizes = p.variants ? p.variants.map(v => v.size).filter(s => s && s !== "-") : [];
+    const coverUrl = getPrimaryImageUrl(p.image_url) || 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=500&auto=format&fit=crop&q=80';
 
     return `
       <div class="product-card">
@@ -185,7 +217,7 @@ function renderProducts() {
           ${badgeText}
         </span>
         <div class="card-img-wrap" onclick="openProductDetail('${p.product_id}')" style="cursor: pointer;">
-          <img src="${p.image_url}" alt="${p.product_name}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=500&auto=format&fit=crop&q=80'">
+          <img src="${coverUrl}" alt="${p.product_name}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=500&auto=format&fit=crop&q=80'">
         </div>
         <div class="card-body">
           <span class="card-category">${p.category_name || 'Crocs Footwear'}</span>
@@ -229,10 +261,20 @@ window.openProductDetail = function(productId) {
     badgeText = "📦 Pre-Order (Estimasi 10-14 Hari Kerja)";
   }
 
+  const allImgs = getAllProductImages(prod.image_url);
+  const primaryImg = allImgs[0] || 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=500&auto=format&fit=crop&q=80';
+
   body.innerHTML = `
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;" class="detail-grid">
-      <div style="background: #F8FAFC; border-radius: var(--radius-md); padding: 1.5rem; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border);">
-        <img src="${prod.image_url}" alt="${prod.product_name}" style="max-width: 100%; max-height: 260px; object-fit: contain;" onerror="this.src='https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=500&auto=format&fit=crop&q=80'">
+      <div style="background: #F8FAFC; border-radius: var(--radius-md); padding: 1.25rem; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid var(--border);">
+        <img id="storefrontDetailMainImg" src="${primaryImg}" alt="${prod.product_name}" style="max-width: 100%; max-height: 250px; object-fit: contain;" onerror="this.src='https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=500&auto=format&fit=crop&q=80'">
+        ${allImgs.length > 1 ? `
+          <div style="display: flex; gap: 0.5rem; margin-top: 1rem; overflow-x: auto; max-width: 100%; padding: 4px;">
+            ${allImgs.map((imgUrl, i) => `
+              <img src="${imgUrl}" onclick="document.getElementById('storefrontDetailMainImg').src='${imgUrl}'" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 2px solid ${i === 0 ? 'var(--primary)' : 'var(--border)'}; cursor: pointer; background: white;" onmouseover="this.style.borderColor='var(--primary)'">
+            `).join('')}
+          </div>
+        ` : ''}
       </div>
       <div>
         <div style="margin-bottom: 0.5rem;">

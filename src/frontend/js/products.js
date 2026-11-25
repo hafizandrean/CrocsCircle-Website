@@ -10,7 +10,47 @@ const PROD_STATE = {
   activeDetailProductId: null,
   inventoryList: [],
   activeDetailProduct: null,
-  searchTimer: null
+  searchTimer: null,
+  modalImages: [], // array of { data, name, isCover }
+  selectedInitSizes: new Set(['M6', 'M7', 'M8', 'M9', 'M10']),
+  selectedModalSizes: new Set(['M6', 'M7', 'M8', 'M9', 'M10']),
+  varModalMode: 'batch'
+};
+
+const CROCS_STANDARD_SIZES = [
+  'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12',
+  'W5', 'W6', 'W7', 'W8', 'W9'
+];
+
+// Helper: Image Parsers
+window.getPrimaryImageUrl = function(imageUrl) {
+  if (!imageUrl) return "";
+  if (Array.isArray(imageUrl)) return imageUrl[0] || "";
+  if (typeof imageUrl === "string" && imageUrl.startsWith("[")) {
+    try {
+      const arr = JSON.parse(imageUrl);
+      if (Array.isArray(arr) && arr.length > 0) return arr[0];
+    } catch (e) {}
+  }
+  if (typeof imageUrl === "string" && imageUrl.includes(",")) {
+    return imageUrl.split(",")[0].trim();
+  }
+  return imageUrl;
+};
+
+window.getAllProductImages = function(imageUrl) {
+  if (!imageUrl) return [];
+  if (Array.isArray(imageUrl)) return imageUrl.filter(Boolean);
+  if (typeof imageUrl === "string" && imageUrl.startsWith("[")) {
+    try {
+      const arr = JSON.parse(imageUrl);
+      if (Array.isArray(arr)) return arr.filter(Boolean);
+    } catch (e) {}
+  }
+  if (typeof imageUrl === "string" && imageUrl.includes(",")) {
+    return imageUrl.split(",").map(s => s.trim()).filter(Boolean);
+  }
+  return [imageUrl].filter(Boolean);
 };
 
 // Helper: Format Rupiah
@@ -127,11 +167,21 @@ async function loadMetadata() {
       prodFilter.innerHTML = '<option value="ALL">Semua Kategori</option>' + catOptions;
       modalCategory.innerHTML = catOptions;
 
-      // Populate Vendor Dropdown in Stock In
+      // Populate Vendor Dropdown in Penerimaan Titip Jual
       const vendorSelect = document.getElementById("stockInVendorSelect");
-      vendorSelect.innerHTML = PROD_STATE.vendors.map(v => 
-        `<option value="${v.vendor_id}">${v.vendor_name} (${v.partnership_type || 'CONSIGNMENT'})</option>`
-      ).join('');
+      if (vendorSelect) {
+        vendorSelect.innerHTML = PROD_STATE.vendors.map(v => {
+          let termDesc = "Bagi Hasil Standar";
+          if (v.fixed_vendor_share && Number(v.fixed_vendor_share) > 0) {
+            termDesc = `Hak Bersih ${formatRupiah(v.fixed_vendor_share)} / psg`;
+          } else if (v.consignment_fee_type === 'PERCENTAGE') {
+            termDesc = `Komisi Toko ${v.default_consignment_fee || 10}%`;
+          } else if (v.default_consignment_fee) {
+            termDesc = `Komisi Toko ${formatRupiah(v.default_consignment_fee)}`;
+          }
+          return `<option value="${v.vendor_id}">${v.vendor_name} — [${termDesc}]</option>`;
+        }).join('');
+      }
     }
   } catch (e) {
     console.error("Gagal memuat metadata:", e);
@@ -218,10 +268,12 @@ window.loadProducts = async function() {
     }
 
     empty.style.display = "none";
-    tbody.innerHTML = data.products.map(p => `
+    tbody.innerHTML = data.products.map(p => {
+      const coverUrl = getPrimaryImageUrl(p.image_url) || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'50\' height=\'50\' viewBox=\'0 0 50 50\'><rect width=\'50\' height=\'50\' fill=\'%23E2E8F0\'/><text x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%23173B35\' font-family=\'sans-serif\' font-size=\'9\' font-weight=\'bold\'>CROCS</text></svg>';
+      return `
       <tr>
         <td>
-          <img src="${p.image_url || 'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'50\' height=\'50\' viewBox=\'0 0 50 50\'><rect width=\'50\' height=\'50\' fill=\'%23E2E8F0\'/><text x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%23173B35\' font-family=\'sans-serif\' font-size=\'9\' font-weight=\'bold\'>CROCS</text></svg>'}" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'50\' height=\'50\' viewBox=\'0 0 50 50\'><rect width=\'50\' height=\'50\' fill=\'%23E2E8F0\'/><text x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%23173B35\' font-family=\'sans-serif\' font-size=\'9\' font-weight=\'bold\'>CROCS</text></svg>';" alt="${p.product_name}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
+          <img src="${coverUrl}" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'50\' height=\'50\' viewBox=\'0 0 50 50\'><rect width=\'50\' height=\'50\' fill=\'%23E2E8F0\'/><text x=\'50%25\' y=\'50%25\' dominant-baseline=\'middle\' text-anchor=\'middle\' fill=\'%23173B35\' font-family=\'sans-serif\' font-size=\'9\' font-weight=\'bold\'>CROCS</text></svg>';" alt="${p.product_name}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
         </td>
         <td><code>${p.product_id}</code></td>
         <td>
@@ -246,30 +298,332 @@ window.loadProducts = async function() {
           </button>
         </td>
       </tr>
-    `).join('');
+    `}).join('');
 
   } catch (err) {
     console.error("Gagal memuat katalog produk:", err);
   }
 };
 
-// Modal Tambah / Edit Produk
+// ===========================================================================
+// IMAGE UPLOAD & GALLERY HANDLERS (LOCAL FILE PICKER & DRAG & DROP)
+// ===========================================================================
+window.triggerFileInput = function() {
+  const fileInput = document.getElementById("modalProductFileInput");
+  if (fileInput) fileInput.click();
+};
+
+window.handleDragOver = function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const zone = document.getElementById("imageDropZone");
+  if (zone) zone.style.borderColor = "var(--primary)";
+};
+
+window.handleDragLeave = function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const zone = document.getElementById("imageDropZone");
+  if (zone) zone.style.borderColor = "#94A3B8";
+};
+
+window.handleFileDrop = function(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const zone = document.getElementById("imageDropZone");
+  if (zone) zone.style.borderColor = "#94A3B8";
+  if (e.dataTransfer && e.dataTransfer.files) {
+    processFiles(e.dataTransfer.files);
+  }
+};
+
+window.handleFileSelection = function(e) {
+  if (e.target && e.target.files) {
+    processFiles(e.target.files);
+  }
+};
+
+function processFiles(fileList) {
+  if (!fileList || fileList.length === 0) return;
+  const statusEl = document.getElementById("imageUploadStatus");
+  if (statusEl) {
+    statusEl.innerText = `Memproses ${fileList.length} file gambar...`;
+    statusEl.style.display = "block";
+  }
+
+  let processed = 0;
+  for (let i = 0; i < fileList.length; i++) {
+    const file = fileList[i];
+    if (!file.type.startsWith("image/")) continue;
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      const rawData = evt.target.result;
+      PROD_STATE.modalImages.push({
+        name: file.name,
+        data: rawData,
+        isNewLocal: true
+      });
+      processed++;
+      if (processed >= fileList.length) {
+        if (statusEl) statusEl.style.display = "none";
+        renderImagePreviews();
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+window.toggleManualUrlInput = function() {
+  const container = document.getElementById("manualUrlContainer");
+  const toggleText = document.getElementById("manualUrlToggleText");
+  if (!container) return;
+  if (container.style.display === "none") {
+    container.style.display = "block";
+    toggleText.innerText = "Sembunyikan Input URL";
+  } else {
+    container.style.display = "none";
+    toggleText.innerText = "Atau Masukkan Link URL Web";
+  }
+};
+
+window.addManualUrlImage = function() {
+  const input = document.getElementById("manualUrlInput");
+  if (!input) return;
+  const url = input.value.trim();
+  if (!url) return;
+
+  PROD_STATE.modalImages.push({
+    name: "Web URL",
+    data: url,
+    isNewLocal: false
+  });
+  input.value = "";
+  renderImagePreviews();
+};
+
+window.renderImagePreviews = function() {
+  const grid = document.getElementById("imagePreviewGrid");
+  if (!grid) return;
+
+  if (PROD_STATE.modalImages.length === 0) {
+    grid.innerHTML = `<span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Belum ada foto dipilih. Foto pertama akan otomatis menjadi sampul katalog.</span>`;
+    return;
+  }
+
+  grid.innerHTML = PROD_STATE.modalImages.map((img, idx) => {
+    const isCover = idx === 0;
+    return `
+      <div style="position: relative; width: 90px; height: 90px; border-radius: 8px; border: 2px solid ${isCover ? 'var(--primary)' : 'var(--border)'}; overflow: hidden; background: #F1F5F9; box-shadow: var(--shadow-sm);">
+        <img src="${img.data}" alt="${img.name || 'Foto'}" style="width: 100%; height: 100%; object-fit: cover;">
+        ${isCover ? `
+          <span style="position: absolute; top: 3px; left: 3px; background: var(--primary); color: white; font-size: 0.62rem; font-weight: 700; padding: 1px 5px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+            ⭐ Sampul
+          </span>
+        ` : `
+          <button type="button" onclick="setAsCoverImage(${idx})" title="Jadikan Sampul Utama" style="position: absolute; bottom: 3px; left: 3px; background: rgba(0,0,0,0.65); color: white; border: none; font-size: 0.62rem; padding: 2px 4px; border-radius: 3px; cursor: pointer;">
+            Jadikan Sampul
+          </button>
+        `}
+        <button type="button" onclick="removeImageAtIndex(${idx})" title="Hapus Foto" style="position: absolute; top: 3px; right: 3px; background: #DC2626; color: white; border: none; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; cursor: pointer;">
+          &times;
+        </button>
+      </div>
+    `;
+  }).join('');
+};
+
+window.setAsCoverImage = function(index) {
+  if (index <= 0 || index >= PROD_STATE.modalImages.length) return;
+  const item = PROD_STATE.modalImages.splice(index, 1)[0];
+  PROD_STATE.modalImages.unshift(item);
+  renderImagePreviews();
+};
+
+window.removeImageAtIndex = function(index) {
+  PROD_STATE.modalImages.splice(index, 1);
+  renderImagePreviews();
+};
+
+// Upload any local base64 images to server
+async function uploadModalImagesToServer() {
+  const localItems = PROD_STATE.modalImages.filter(img => img.isNewLocal && img.data.startsWith('data:'));
+  if (localItems.length === 0) {
+    return PROD_STATE.modalImages.map(img => img.data);
+  }
+
+  const res = await fetch('/api/upload-images', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${PROD_STATE.token}`
+    },
+    body: JSON.stringify({ images: localItems })
+  });
+
+  const resData = await res.json();
+  if (!resData.success) {
+    console.warn("Gagal upload file fisik ke server, fallback ke direct data:", resData.error);
+    return PROD_STATE.modalImages.map(img => img.data);
+  }
+
+  const serverUrls = resData.urls || [];
+  let serverIdx = 0;
+  const finalUrls = [];
+
+  for (const img of PROD_STATE.modalImages) {
+    if (img.isNewLocal && img.data.startsWith('data:')) {
+      finalUrls.push(serverUrls[serverIdx] || img.data);
+      serverIdx++;
+    } else {
+      finalUrls.push(img.data);
+    }
+  }
+
+  return finalUrls;
+}
+
+// ===========================================================================
+// BATCH SIZE SELECTOR & INITIAL VARIANTS LOGIC
+// ===========================================================================
+window.renderInitSizeChips = function() {
+  const container = document.getElementById("initSizeChipsContainer");
+  if (!container) return;
+
+  container.innerHTML = CROCS_STANDARD_SIZES.map(sz => {
+    const isSelected = PROD_STATE.selectedInitSizes.has(sz);
+    return `
+      <button type="button" onclick="toggleInitSizeChip('${sz}')" style="padding: 5px 9px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.15s; border: 1.5px solid ${isSelected ? '#16A34A' : '#CBD5E1'}; background: ${isSelected ? '#DCFCE7' : 'white'}; color: ${isSelected ? '#15803D' : '#475569'}; display: inline-flex; align-items: center; gap: 3px;">
+        ${isSelected ? '<i class="fa-solid fa-check" style="font-size: 0.7rem;"></i>' : ''} ${sz}
+      </button>
+    `;
+  }).join('');
+
+  updateInitialVariantPreview();
+};
+
+window.toggleInitSizeChip = function(sz) {
+  if (PROD_STATE.selectedInitSizes.has(sz)) {
+    PROD_STATE.selectedInitSizes.delete(sz);
+  } else {
+    PROD_STATE.selectedInitSizes.add(sz);
+  }
+  renderInitSizeChips();
+};
+
+window.renderModalSizeChips = function() {
+  const container = document.getElementById("modalSizeChipsContainer");
+  if (!container) return;
+
+  container.innerHTML = CROCS_STANDARD_SIZES.map(sz => {
+    const isSelected = PROD_STATE.selectedModalSizes.has(sz);
+    return `
+      <button type="button" onclick="toggleModalSizeChip('${sz}')" style="padding: 5px 9px; border-radius: 6px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.15s; border: 1.5px solid ${isSelected ? '#2563EB' : '#CBD5E1'}; background: ${isSelected ? '#EFF6FF' : 'white'}; color: ${isSelected ? '#1D4ED8' : '#475569'}; display: inline-flex; align-items: center; gap: 3px;">
+        ${isSelected ? '<i class="fa-solid fa-check" style="font-size: 0.7rem;"></i>' : ''} ${sz}
+      </button>
+    `;
+  }).join('');
+
+  updateVarBatchPreview();
+};
+
+window.toggleModalSizeChip = function(sz) {
+  if (PROD_STATE.selectedModalSizes.has(sz)) {
+    PROD_STATE.selectedModalSizes.delete(sz);
+  } else {
+    PROD_STATE.selectedModalSizes.add(sz);
+  }
+  renderModalSizeChips();
+};
+
+window.selectBatchSizes = function(mode, targetPrefix) {
+  const setRef = targetPrefix === 'init' ? PROD_STATE.selectedInitSizes : PROD_STATE.selectedModalSizes;
+  setRef.clear();
+
+  if (mode === 'POPULAR') {
+    ['M6', 'M7', 'M8', 'M9', 'M10'].forEach(s => setRef.add(s));
+  } else if (mode === 'ALL_M') {
+    ['M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12'].forEach(s => setRef.add(s));
+  } // 'CLEAR' leaves it empty
+
+  if (targetPrefix === 'init') {
+    renderInitSizeChips();
+  } else {
+    renderModalSizeChips();
+  }
+};
+
+window.toggleInitialVariantsFields = function() {
+  const chk = document.getElementById("toggleInitialVariants");
+  const fields = document.getElementById("initialVariantsFields");
+  if (!chk || !fields) return;
+  fields.style.display = chk.checked ? "block" : "none";
+  if (chk.checked) {
+    renderInitSizeChips();
+  }
+};
+
+window.syncSuggestedModelAndSku = function() {
+  const name = document.getElementById("modalProductName").value.trim();
+  const modelInput = document.getElementById("modalProductModel");
+  if (!modelInput.value && name) {
+    const words = name.split(" ");
+    modelInput.value = words.slice(1).join(" ") || words[0];
+  }
+  updateInitialVariantPreview();
+};
+
+window.updateInitialVariantPreview = function() {
+  const textEl = document.getElementById("initVariantPreviewText");
+  if (!textEl) return;
+
+  const count = PROD_STATE.selectedInitSizes.size;
+  const color = (document.getElementById("initVarColor")?.value || "Black").trim();
+  const price = Number(document.getElementById("initVarPrice")?.value) || 0;
+
+  if (count === 0) {
+    textEl.innerText = "Pilih minimal 1 ukuran di atas. SKU akan di-generate otomatis.";
+    textEl.style.color = "#DC2626";
+    return;
+  }
+
+  const sizesArr = Array.from(PROD_STATE.selectedInitSizes);
+  textEl.innerText = `⚡ ${count} Varian ukuran (${sizesArr.join(', ')}) warna ${color} akan langsung dibuat otomatis dengan harga ${formatRupiah(price)}.`;
+  textEl.style.color = "#065F46";
+};
+
+// ===========================================================================
+// MODAL: TAMBAH / EDIT PRODUK (ETALASE)
+// ===========================================================================
 window.openAddProductModal = function() {
-  document.getElementById("productModalTitle").innerText = "Tambah Master Produk Baru";
+  document.getElementById("productModalTitle").innerText = "Tambah Produk Baru ke Etalase";
   document.getElementById("modalProductId").value = "";
   document.getElementById("modalProductName").value = "";
   document.getElementById("modalProductModel").value = "";
   document.getElementById("modalProductDesc").value = "";
-  document.getElementById("modalProductImage").value = "";
   
-  // Set default kategori ke kategori pertama yang ada
+  // Reset images
+  PROD_STATE.modalImages = [];
+  renderImagePreviews();
+  const manualContainer = document.getElementById("manualUrlContainer");
+  if (manualContainer) manualContainer.style.display = "none";
+  
+  // Set default category
   const catSelect = document.getElementById("modalProductCategory");
-  if (catSelect && catSelect.options.length > 0) {
-    catSelect.selectedIndex = 0;
-  }
+  if (catSelect && catSelect.options.length > 0) catSelect.selectedIndex = 0;
   
   document.getElementById("modalProductActive").checked = true;
   document.getElementById("modalProductPublished").checked = true;
+
+  // Show initial variants section for new products
+  const initSection = document.getElementById("initialVariantsSection");
+  if (initSection) initSection.style.display = "block";
+  const chk = document.getElementById("toggleInitialVariants");
+  if (chk) {
+    chk.checked = true;
+    toggleInitialVariantsFields();
+  }
+
   document.getElementById("productModal").style.display = "flex";
 };
 
@@ -282,25 +636,35 @@ window.editProduct = async function(productId) {
     if (!data.success) throw new Error(data.error);
 
     const p = data.data.product;
-    document.getElementById("productModalTitle").innerText = "Edit Master Produk";
+    document.getElementById("productModalTitle").innerText = "Edit Produk Etalase";
     document.getElementById("modalProductId").value = p.product_id;
     document.getElementById("modalProductName").value = p.product_name;
     document.getElementById("modalProductModel").value = p.model || "";
     
-    // Pilih kategori yang sesuai
+    // Set category
     const catSelect = document.getElementById("modalProductCategory");
     if (catSelect) {
-      if (p.category_id) {
-        catSelect.value = p.category_id;
-      } else if (catSelect.options.length > 0) {
-        catSelect.selectedIndex = 0;
-      }
+      if (p.category_id) catSelect.value = p.category_id;
+      else if (catSelect.options.length > 0) catSelect.selectedIndex = 0;
     }
 
     document.getElementById("modalProductDesc").value = p.description || "";
-    document.getElementById("modalProductImage").value = p.image_url || "";
     document.getElementById("modalProductActive").checked = (p.is_active === true || p.is_active === "true");
     document.getElementById("modalProductPublished").checked = (p.is_published === true || p.is_published === "true");
+
+    // Load existing images into state
+    const existingImages = getAllProductImages(p.image_url);
+    PROD_STATE.modalImages = existingImages.map((url, i) => ({
+      name: `Foto ${i + 1}`,
+      data: url,
+      isNewLocal: false
+    }));
+    renderImagePreviews();
+
+    // Hide initial variants section when editing existing product
+    const initSection = document.getElementById("initialVariantsSection");
+    if (initSection) initSection.style.display = "none";
+
     document.getElementById("productModal").style.display = "flex";
   } catch (e) {
     alert("Gagal memuat data produk: " + e.message);
@@ -313,19 +677,35 @@ window.closeProductModal = function() {
 
 window.handleProductFormSubmit = async function(event) {
   event.preventDefault();
-  const productId = document.getElementById("modalProductId").value;
-  const productData = {
-    product_id: productId || undefined,
-    product_name: document.getElementById("modalProductName").value.trim(),
-    model: document.getElementById("modalProductModel").value.trim(),
-    category_id: document.getElementById("modalProductCategory").value,
-    description: document.getElementById("modalProductDesc").value.trim(),
-    image_url: document.getElementById("modalProductImage").value.trim(),
-    is_active: document.getElementById("modalProductActive").checked,
-    is_published: document.getElementById("modalProductPublished").checked
-  };
+  const btn = document.getElementById("btnSubmitProduct");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`;
+  }
 
   try {
+    // 1. Upload local images to server
+    const finalImageUrls = await uploadModalImagesToServer();
+    const finalImageUrlStr = finalImageUrls.length === 1 ? finalImageUrls[0] : (finalImageUrls.length > 1 ? JSON.stringify(finalImageUrls) : "");
+
+    const productId = document.getElementById("modalProductId").value;
+    const isNew = !productId;
+    const productName = document.getElementById("modalProductName").value.trim();
+    const model = document.getElementById("modalProductModel").value.trim();
+    const categoryId = document.getElementById("modalProductCategory").value;
+
+    const productData = {
+      product_id: productId || undefined,
+      product_name: productName,
+      model: model,
+      category_id: categoryId,
+      description: document.getElementById("modalProductDesc").value.trim(),
+      image_url: finalImageUrlStr,
+      is_active: document.getElementById("modalProductActive").checked,
+      is_published: document.getElementById("modalProductPublished").checked
+    };
+
+    // 2. Save product
     const res = await fetch('/api/products', {
       method: 'POST',
       headers: {
@@ -337,11 +717,53 @@ window.handleProductFormSubmit = async function(event) {
     const result = await res.json();
     if (!result.success) throw new Error(result.error);
 
-    alert("Produk berhasil disimpan!");
+    const savedProductId = result.product_id || (result.product && result.product.product_id) || productId;
+
+    // 3. If new product and toggleInitialVariants is checked, batch create initial variants!
+    const chkInit = document.getElementById("toggleInitialVariants");
+    if (isNew && chkInit && chkInit.checked && PROD_STATE.selectedInitSizes.size > 0) {
+      const color = (document.getElementById("initVarColor").value || "Black").trim();
+      const price = Number(document.getElementById("initVarPrice").value) || 0;
+      const refHpp = Number(document.getElementById("initVarRefHpp")?.value) || 0;
+
+      const modelCode = (model || productName).substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const colorCode = color.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+      const variantsPayload = [];
+      PROD_STATE.selectedInitSizes.forEach(size => {
+        const sku = `CRC-${modelCode || 'GEN'}-${colorCode || 'CLR'}-${size}`;
+        variantsPayload.push({
+          product_id: savedProductId,
+          sku: sku,
+          color: color,
+          size: size,
+          catalog_price: price,
+          reference_hpp: refHpp
+        });
+      });
+
+      if (variantsPayload.length > 0) {
+        await fetch('/api/variants/batch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${PROD_STATE.token}`
+          },
+          body: JSON.stringify({ variants: variantsPayload })
+        });
+      }
+    }
+
+    alert("Produk & varian berhasil disimpan ke etalase!");
     closeProductModal();
     loadProducts();
   } catch (err) {
     alert("Gagal menyimpan produk: " + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-save"></i> Simpan Produk`;
+    }
   }
 };
 
@@ -364,6 +786,22 @@ window.viewProductDetail = async function(productId) {
 
     document.getElementById("detailModalProductName").innerText = p.product_name;
     document.getElementById("detailModalCategory").innerText = `ID: ${p.product_id} | Kategori: ${p.category_id}`;
+
+    // Render photo gallery in detail modal
+    const galleryRow = document.getElementById("detailModalGalleryRow");
+    if (galleryRow) {
+      const allImgs = getAllProductImages(p.image_url);
+      if (allImgs.length === 0) {
+        galleryRow.innerHTML = `<span style="font-size: 0.78rem; color: var(--text-muted); font-style: italic;"><i class="fa-solid fa-image"></i> Belum ada foto untuk produk ini.</span>`;
+      } else {
+        galleryRow.innerHTML = allImgs.map((url, i) => `
+          <div style="position: relative; flex-shrink: 0; width: 75px; height: 75px; border-radius: 6px; overflow: hidden; border: 2px solid ${i === 0 ? 'var(--primary)' : 'var(--border)'}; background: white; box-shadow: var(--shadow-sm);">
+            <img src="${url}" alt="Foto ${i+1}" style="width: 100%; height: 100%; object-fit: cover;">
+            ${i === 0 ? '<span style="position: absolute; bottom: 0; left: 0; right: 0; background: rgba(23,59,53,0.85); color: white; font-size: 0.58rem; text-align: center; font-weight: 700; padding: 1px 0;">Sampul</span>' : ''}
+          </div>
+        `).join('');
+      }
+    }
 
     const tbody = document.getElementById("detailModalVariantsBody");
     if (variants.length === 0) {
@@ -403,6 +841,76 @@ window.closeProductDetailModal = function() {
   document.getElementById("productDetailModal").style.display = "none";
 };
 
+// ===========================================================================
+// STANDALONE VARIANT MODAL HANDLERS (BATCH & MANUAL MODES)
+// ===========================================================================
+window.switchVariantInputMode = function(mode) {
+  PROD_STATE.varModalMode = mode;
+  const btnBatch = document.getElementById("varModeBtnBatch");
+  const btnManual = document.getElementById("varModeBtnManual");
+  const containerBatch = document.getElementById("varBatchModeContainer");
+  const containerManual = document.getElementById("varManualModeContainer");
+  const sizeInput = document.getElementById("modalVarSize");
+  const skuInput = document.getElementById("modalVarSku");
+
+  if (mode === 'batch') {
+    if (btnBatch) {
+      btnBatch.style.background = "var(--primary)";
+      btnBatch.style.color = "white";
+      btnBatch.style.fontWeight = "700";
+    }
+    if (btnManual) {
+      btnManual.style.background = "white";
+      btnManual.style.color = "var(--text-muted)";
+      btnManual.style.fontWeight = "600";
+    }
+    if (containerBatch) containerBatch.style.display = "block";
+    if (containerManual) containerManual.style.display = "none";
+    if (sizeInput) sizeInput.required = false;
+    if (skuInput) skuInput.required = false;
+
+    renderModalSizeChips();
+  } else {
+    if (btnManual) {
+      btnManual.style.background = "var(--primary)";
+      btnManual.style.color = "white";
+      btnManual.style.fontWeight = "700";
+    }
+    if (btnBatch) {
+      btnBatch.style.background = "white";
+      btnBatch.style.color = "var(--text-muted)";
+      btnBatch.style.fontWeight = "600";
+    }
+    if (containerManual) containerManual.style.display = "block";
+    if (containerBatch) containerBatch.style.display = "none";
+    if (sizeInput) sizeInput.required = true;
+    if (skuInput) skuInput.required = true;
+  }
+};
+
+window.updateVarBatchPreview = function() {
+  const textEl = document.getElementById("modalVarBatchPreviewText");
+  if (!textEl) return;
+
+  const count = PROD_STATE.selectedModalSizes.size;
+  const color = (document.getElementById("modalVarColor")?.value || "Black").trim();
+  const prod = PROD_STATE.activeDetailProduct;
+  const modelName = prod ? (prod.model || prod.product_name) : "CROCS";
+  const modelCode = modelName.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const colorCode = color.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+  if (count === 0) {
+    textEl.innerText = "Pilih minimal 1 ukuran di atas. SKU akan di-generate otomatis.";
+    textEl.style.color = "#DC2626";
+    return;
+  }
+
+  const sizesArr = Array.from(PROD_STATE.selectedModalSizes);
+  const sampleSku = `CRC-${modelCode || 'GEN'}-${colorCode || 'CLR'}-${sizesArr[0]}`;
+  textEl.innerText = `⚡ ${count} Varian ukuran (${sizesArr.join(', ')}) warna ${color} akan dibuat sekaligus. Contoh SKU: ${sampleSku}`;
+  textEl.style.color = "#1E40AF";
+};
+
 // Modal Tambah / Edit Varian
 window.openAddVariantFromDetail = function() {
   const prodId = PROD_STATE.activeDetailProductId;
@@ -416,12 +924,15 @@ window.openAddVariantFromDetail = function() {
   document.getElementById("modalVarId").value = "";
   document.getElementById("variantModalSubtitle").innerText = `Produk: ${prodName} (${prodId})`;
   document.getElementById("modalVarSku").value = "";
-  document.getElementById("modalVarColor").value = "";
+  document.getElementById("modalVarColor").value = "Black";
   document.getElementById("modalVarSize").value = "";
   document.getElementById("modalVarCatalogPrice").value = "";
   document.getElementById("modalVarRefHpp").value = "";
-  document.getElementById("skuErrorText").innerText = "";
 
+  const switcher = document.getElementById("variantModeSwitcher");
+  if (switcher) switcher.style.display = "flex";
+
+  switchVariantInputMode('batch');
   document.getElementById("variantModal").style.display = "flex";
 };
 
@@ -440,8 +951,11 @@ window.editVariantByIndex = function(idx) {
   document.getElementById("modalVarSize").value = v.size || "";
   document.getElementById("modalVarCatalogPrice").value = v.catalog_price || 0;
   document.getElementById("modalVarRefHpp").value = v.reference_hpp || 0;
-  document.getElementById("skuErrorText").innerText = "";
 
+  const switcher = document.getElementById("variantModeSwitcher");
+  if (switcher) switcher.style.display = "none";
+
+  switchVariantInputMode('manual');
   document.getElementById("variantModal").style.display = "flex";
 };
 
@@ -471,45 +985,98 @@ window.closeVariantModal = function() {
 
 window.handleVariantFormSubmit = async function(event) {
   event.preventDefault();
-  const skuError = document.getElementById("skuErrorText");
-  skuError.innerText = "";
-
-  const variantData = {
-    product_id: document.getElementById("modalVarProductId").value,
-    variant_id: document.getElementById("modalVarId").value || undefined,
-    sku: document.getElementById("modalVarSku").value.trim().toUpperCase(),
-    color: document.getElementById("modalVarColor").value.trim(),
-    size: document.getElementById("modalVarSize").value.trim().toUpperCase(),
-    catalog_price: Number(document.getElementById("modalVarCatalogPrice").value) || 0,
-    reference_hpp: Number(document.getElementById("modalVarRefHpp").value) || 0
-  };
+  const btn = document.getElementById("btnSubmitVariant");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`;
+  }
 
   try {
-    const res = await fetch('/api/variants', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${PROD_STATE.token}`
-      },
-      body: JSON.stringify(variantData)
-    });
-    const result = await res.json();
+    const productId = document.getElementById("modalVarProductId").value;
+    const variantId = document.getElementById("modalVarId").value;
+    const color = document.getElementById("modalVarColor").value.trim();
+    const price = Number(document.getElementById("modalVarCatalogPrice").value) || 0;
+    const refHpp = Number(document.getElementById("modalVarRefHpp")?.value) || 0;
 
-    if (!result.success) {
-      if (result.error && result.error.includes("SKU harus unik")) {
-        skuError.innerText = result.error;
+    if (PROD_STATE.varModalMode === 'batch' && !variantId) {
+      // BATCH MODE
+      if (PROD_STATE.selectedModalSizes.size === 0) {
+        alert("Silakan pilih minimal 1 ukuran varian.");
         return;
       }
-      throw new Error(result.error);
+
+      const prod = PROD_STATE.activeDetailProduct;
+      const modelName = prod ? (prod.model || prod.product_name) : "CROCS";
+      const modelCode = modelName.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const colorCode = color.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+      const variantsPayload = [];
+      PROD_STATE.selectedModalSizes.forEach(size => {
+        const sku = `CRC-${modelCode || 'GEN'}-${colorCode || 'CLR'}-${size}`;
+        variantsPayload.push({
+          product_id: productId,
+          sku: sku,
+          color: color,
+          size: size,
+          catalog_price: price,
+          reference_hpp: refHpp
+        });
+      });
+
+      const res = await fetch('/api/variants/batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${PROD_STATE.token}`
+        },
+        body: JSON.stringify({ variants: variantsPayload })
+      });
+      const result = await res.json();
+      if (!result.success && result.errors && result.errors.length > 0) {
+        alert("Peringatan: Beberapa varian gagal dibuat: " + result.errors.map(e => `${e.sku}: ${e.error}`).join('\n'));
+      } else if (!result.success) {
+        throw new Error(result.error);
+      } else {
+        alert(`Berhasil membuat ${result.createdCount || variantsPayload.length} varian ukuran!`);
+      }
+
+    } else {
+      // MANUAL 1-SIZE MODE OR EDIT MODE
+      const variantData = {
+        product_id: productId,
+        variant_id: variantId || undefined,
+        sku: document.getElementById("modalVarSku").value.trim().toUpperCase(),
+        color: color,
+        size: document.getElementById("modalVarSize").value.trim().toUpperCase(),
+        catalog_price: price,
+        reference_hpp: refHpp
+      };
+
+      const res = await fetch('/api/variants', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${PROD_STATE.token}`
+        },
+        body: JSON.stringify(variantData)
+      });
+      const result = await res.json();
+      if (!result.success) throw new Error(result.error);
+
+      alert("Varian produk berhasil disimpan!");
     }
 
-    alert("Varian produk berhasil ditambahkan!");
     closeVariantModal();
     // Refresh modal detail & daftar produk
-    viewProductDetail(variantData.product_id);
+    viewProductDetail(productId);
     loadProducts();
   } catch (err) {
     alert("Gagal menyimpan varian: " + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-plus"></i> Simpan Varian`;
+    }
   }
 };
 
@@ -680,26 +1247,10 @@ window.closeBatchModal = function() {
 };
 
 // ---------------------------------------------------------------------------
-// 6. TAB 3: PENERIMAAN STOK (STOCK IN: SUPPLIER & CONSIGNMENT)
+// 6. TAB 3: PENERIMAAN TITIP JUAL (KONSINYASI VENDOR)
 // ---------------------------------------------------------------------------
 window.toggleOwnershipFields = function() {
-  const type = document.querySelector('input[name="ownershipType"]:checked').value;
-  const consignmentFields = document.getElementById("consignmentFields");
-  const supplierFields = document.getElementById("supplierFields");
-  const costWrapper = document.getElementById("costInputWrapper");
-  const partialWrapper = document.getElementById("partialDeliveryWrapper");
-
-  if (type === "VENDOR_CONSIGNMENT") {
-    consignmentFields.style.display = "block";
-    supplierFields.style.display = "none";
-    costWrapper.style.display = "none";
-    partialWrapper.style.display = "none";
-  } else {
-    consignmentFields.style.display = "none";
-    supplierFields.style.display = "block";
-    costWrapper.style.display = "block";
-    partialWrapper.style.display = "block";
-  }
+  // Legacy stub: Tab 3 is now dedicated to VENDOR_CONSIGNMENT
 };
 
 window.populateStockInVariants = async function() {
@@ -709,24 +1260,157 @@ window.populateStockInVariants = async function() {
     });
     const data = await res.json();
     if (data.success && data.inventory) {
+      PROD_STATE.inventoryList = data.inventory;
       const select = document.getElementById("stockInVariantSelect");
-      select.innerHTML = '<option value="">-- Pilih SKU Varian Produk --</option>' + 
-        data.inventory.map(v => 
-          `<option value="${v.variant_id}">${v.sku} — ${v.product_name} (${v.color}, Size ${v.size})</option>`
-        ).join('');
+      if (select) {
+        select.innerHTML = '<option value="">-- Pilih SKU Varian Produk --</option>' + 
+          data.inventory.map(v => 
+            `<option value="${v.variant_id}">${v.sku} — ${v.product_name} (${v.color}, Size ${v.size}) [${formatRupiah(v.catalog_price)}]</option>`
+          ).join('');
+      }
+      calculateTitipJualPreview();
     }
   } catch (e) {
     console.error("Gagal memuat varian:", e);
   }
 };
 
+window.calculateTitipJualPreview = function(preserveCustom = false) {
+  const variantSelect = document.getElementById("stockInVariantSelect");
+  const vendorSelect = document.getElementById("stockInVendorSelect");
+  const qtyInput = document.getElementById("stockInQuantity");
+  if (!variantSelect || !vendorSelect) return;
+
+  const variantId = variantSelect.value;
+  const vendorId = vendorSelect.value;
+  const qty = parseInt(qtyInput ? qtyInput.value : 1, 10) || 1;
+
+  const prevSellingPrice = document.getElementById("prevSellingPrice");
+  const prevVendorShare = document.getElementById("prevVendorShare");
+  const prevCrocsIncentive = document.getElementById("prevCrocsIncentive");
+  const prevVendorNameBadge = document.getElementById("previewVendorNameBadge");
+  const prevVendorShareNote = document.getElementById("prevVendorShareNote");
+  const prevTotalIncentive = document.getElementById("prevTotalIncentive");
+  const customShareInput = document.getElementById("customVendorShareInput");
+  const customIncentiveInput = document.getElementById("customCrocsIncentiveInput");
+
+  if (!variantId) {
+    if (prevSellingPrice) prevSellingPrice.innerText = "Rp 0";
+    if (prevVendorShare) prevVendorShare.innerText = "Rp 0";
+    if (prevCrocsIncentive) prevCrocsIncentive.innerText = "Rp 0";
+    if (prevTotalIncentive) prevTotalIncentive.innerText = "Pilih varian untuk kalkulasi";
+    if (customShareInput) customShareInput.value = "";
+    if (customIncentiveInput) customIncentiveInput.value = "";
+    return;
+  }
+
+  // Find variant in loaded inventory
+  const variant = (PROD_STATE.inventoryList || []).find(v => v.variant_id === variantId);
+  const catalogPrice = variant ? Number(variant.catalog_price || 0) : 0;
+
+  // Find vendor
+  const vendor = (PROD_STATE.vendors || []).find(v => v.vendor_id === vendorId);
+  if (prevVendorNameBadge && vendor) {
+    prevVendorNameBadge.innerText = `Partner: ${vendor.vendor_name}`;
+  }
+
+  let vendorShare = 0;
+  let crocsIncentive = 0;
+  let shareNote = "Disetor setelah barang laku";
+
+  if (preserveCustom && customShareInput && customShareInput.value !== "") {
+    vendorShare = Number(customShareInput.value) || 0;
+    crocsIncentive = Math.max(0, catalogPrice - vendorShare);
+    shareNote = "Disesuaikan khusus untuk penerimaan ini";
+  } else if (vendor) {
+    const fixedShare = vendor.fixed_vendor_share ? Number(vendor.fixed_vendor_share) : 0;
+    const feeType = vendor.consignment_fee_type || "FIXED_PER_UNIT";
+    const feeValue = vendor.default_consignment_fee ? Number(vendor.default_consignment_fee) : 10000;
+
+    if (fixedShare > 0) {
+      vendorShare = fixedShare;
+      crocsIncentive = Math.max(0, catalogPrice - fixedShare);
+      shareNote = `Hak pasti partner ${formatRupiah(fixedShare)} / unit`;
+    } else if (feeType === "PERCENTAGE") {
+      crocsIncentive = Math.round(catalogPrice * (feeValue / 100));
+      vendorShare = Math.max(0, catalogPrice - crocsIncentive);
+      shareNote = `Bagi hasil partner (${100 - feeValue}%)`;
+    } else {
+      crocsIncentive = feeValue;
+      vendorShare = Math.max(0, catalogPrice - crocsIncentive);
+      shareNote = `Harga jual dikurangi fee ${formatRupiah(feeValue)}`;
+    }
+
+    if (customShareInput) customShareInput.value = vendorShare;
+    if (customIncentiveInput) customIncentiveInput.value = crocsIncentive;
+  } else {
+    crocsIncentive = 10000;
+    vendorShare = Math.max(0, catalogPrice - 10000);
+    if (customShareInput) customShareInput.value = vendorShare;
+    if (customIncentiveInput) customIncentiveInput.value = crocsIncentive;
+  }
+
+  if (prevSellingPrice) prevSellingPrice.innerText = formatRupiah(catalogPrice);
+  if (prevVendorShare) prevVendorShare.innerText = formatRupiah(vendorShare);
+  if (prevCrocsIncentive) prevCrocsIncentive.innerText = formatRupiah(crocsIncentive);
+  if (prevVendorShareNote) prevVendorShareNote.innerText = shareNote;
+  if (prevTotalIncentive) {
+    prevTotalIncentive.innerText = (qty > 1) 
+      ? `Total estimasi laba (${qty} pcs): ${formatRupiah(crocsIncentive * qty)}`
+      : `Keuntungan bersih toko per unit`;
+  }
+};
+
+window.onCustomVendorShareChange = function() {
+  const variantSelect = document.getElementById("stockInVariantSelect");
+  const customShareInput = document.getElementById("customVendorShareInput");
+  const customIncentiveInput = document.getElementById("customCrocsIncentiveInput");
+  if (!variantSelect || !customShareInput) return;
+
+  const variantId = variantSelect.value;
+  const variant = (PROD_STATE.inventoryList || []).find(v => v.variant_id === variantId);
+  const catalogPrice = variant ? Number(variant.catalog_price || 0) : 0;
+
+  const newShare = Number(customShareInput.value) || 0;
+  const newIncentive = Math.max(0, catalogPrice - newShare);
+  if (customIncentiveInput) customIncentiveInput.value = newIncentive;
+
+  calculateTitipJualPreview(true);
+};
+
+window.onCustomCrocsIncentiveChange = function() {
+  const variantSelect = document.getElementById("stockInVariantSelect");
+  const customShareInput = document.getElementById("customVendorShareInput");
+  const customIncentiveInput = document.getElementById("customCrocsIncentiveInput");
+  if (!variantSelect || !customIncentiveInput) return;
+
+  const variantId = variantSelect.value;
+  const variant = (PROD_STATE.inventoryList || []).find(v => v.variant_id === variantId);
+  const catalogPrice = variant ? Number(variant.catalog_price || 0) : 0;
+
+  const newIncentive = Number(customIncentiveInput.value) || 0;
+  const newShare = Math.max(0, catalogPrice - newIncentive);
+  if (customShareInput) customShareInput.value = newShare;
+
+  calculateTitipJualPreview(true);
+};
+
+window.resetToVendorDefaultTerms = function() {
+  calculateTitipJualPreview(false);
+};
+
 window.handleStockInSubmit = async function(event) {
   event.preventDefault();
 
-  const ownershipType = document.querySelector('input[name="ownershipType"]:checked').value;
   const variantId = document.getElementById("stockInVariantSelect").value;
+  const vendorId = document.getElementById("stockInVendorSelect").value;
   const quantity = parseInt(document.getElementById("stockInQuantity").value, 10);
   const notes = document.getElementById("stockInNotes").value.trim();
+
+  if (!vendorId) {
+    alert("Silakan pilih partner / pemilik barang titip jual.");
+    return;
+  }
 
   if (!variantId) {
     alert("Silakan pilih SKU varian produk terlebih dahulu.");
@@ -738,41 +1422,21 @@ window.handleStockInSubmit = async function(event) {
     return;
   }
 
-  const stockData = {
-    ownership_type: ownershipType,
-    variant_id: variantId,
-    quantity: quantity,
-    notes: notes
-  };
+  const customShare = Number(document.getElementById("customVendorShareInput")?.value);
+  const customFee = Number(document.getElementById("customCrocsIncentiveInput")?.value);
 
-  if (ownershipType === "VENDOR_CONSIGNMENT") {
-    const vendorId = document.getElementById("stockInVendorSelect").value;
-    if (!vendorId) {
-      alert("Silakan pilih vendor konsinyasi.");
-      return;
-    }
-    stockData.vendor_id = vendorId;
-  } else {
-    const unitCost = parseFloat(document.getElementById("stockInUnitCost").value) || 0;
-    const supplierName = document.getElementById("stockInSupplierName").value.trim() || "Supplier Umum";
-    const purchaseId = document.getElementById("stockInPurchaseId").value.trim();
-    const isPartial = document.getElementById("stockInIsPartial").checked;
-
-    stockData.is_partial = isPartial;
-    stockData.purchase_id = purchaseId;
-    stockData.purchase_header = {
-      purchase_id: purchaseId || undefined,
-      supplier_name: supplierName,
-      receiving_status: isPartial ? "PARTIAL_RECEIVED" : "RECEIVED"
-    };
-    stockData.items = [{
-      variant_id: variantId,
-      quantity: quantity,
-      base_unit_cost: unitCost,
-      vendor_incentive: 0,
-      is_last_delivery: !isPartial
-    }];
+  let finalNotes = notes;
+  if (!isNaN(customShare) && customShare > 0) {
+    finalNotes = (notes ? (notes + " ") : "") + `[HAK_VENDOR:${customShare};INSENTIF:${customFee || 0}]`;
   }
+
+  const stockData = {
+    ownership_type: "VENDOR_CONSIGNMENT",
+    variant_id: variantId,
+    vendor_id: vendorId,
+    quantity: quantity,
+    notes: finalNotes
+  };
 
   const btn = document.getElementById("stockInSubmitBtn");
   btn.disabled = true;
@@ -789,13 +1453,13 @@ window.handleStockInSubmit = async function(event) {
     const result = await res.json();
     if (!result.success) throw new Error(result.error);
 
-    alert(`Penerimaan stok ${quantity} unit berhasil dicatat dan masuk ke inventaris!`);
+    alert(`Penerimaan barang titip jual sebanyak ${quantity} unit berhasil dicatat dan masuk ke inventaris!`);
     document.getElementById("stockInForm").reset();
-    toggleOwnershipFields();
-    // Refresh inventaris & beralih ke tab inventaris
+    calculateTitipJualPreview(false);
+    // Beralih ke tab inventaris untuk melihat stok terbarunya
     switchTab('inventory');
   } catch (err) {
-    alert("Gagal mencatat penerimaan stok: " + err.message);
+    alert("Gagal mencatat penerimaan titip jual: " + err.message);
   } finally {
     btn.disabled = false;
   }

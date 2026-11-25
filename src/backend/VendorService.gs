@@ -437,6 +437,64 @@ const VendorService = (function() {
     const totalPaidSoFar = settlements.reduce((sum, s) => sum + (Number(s.total_gross_payable) || 0), 0);
     const totalNetCashPaid = settlements.reduce((sum, s) => sum + (Number(s.total_net_payout) || 0), 0);
 
+    // Ambil referensi penjualan, varian, dan master produk untuk enrichment detail transaksi
+    const salesList = DatabaseHelper.getAllRows("PENJUALAN");
+    const salesMap = {};
+    salesList.forEach(s => { salesMap[s.sales_id] = s; });
+
+    const variantsList = DatabaseHelper.getAllRows("VARIAN_PRODUK");
+    const variantMap = {};
+    variantsList.forEach(v => { variantMap[v.variant_id] = v; });
+
+    const productsList = DatabaseHelper.getAllRows("MASTER_PRODUK");
+    const productMap = {};
+    productsList.forEach(p => { productMap[p.product_id] = p; });
+
+    const enrichedSoldItems = allConsignmentSold.map(d => {
+      const sale = salesMap[d.sales_id] || {};
+      const variant = variantMap[d.variant_id] || {};
+      const product = variant.product_id ? (productMap[variant.product_id] || {}) : {};
+
+      const normalPrice = Number(variant.catalog_price) || Number(d.selling_price) || 0;
+      const sellingPrice = Number(d.selling_price) || 0;
+      const isNegotiated = normalPrice > 0 && sellingPrice < normalPrice;
+      const discountAmount = isNegotiated ? (normalPrice - sellingPrice) : 0;
+      const qty = Number(d.quantity) || 1;
+
+      return {
+        sales_detail_id: d.sales_detail_id,
+        sales_id: d.sales_id,
+        transaction_date: sale.transaction_date instanceof Date ? sale.transaction_date.toISOString() : (sale.transaction_date || sale.created_at || ""),
+        customer_name: sale.customer_name || "Pelanggan Langsung",
+        sales_channel: sale.sales_channel || "OFFLINE_STORE",
+        payment_method: sale.payment_method || "CASH",
+        variant_id: d.variant_id,
+        sku: variant.sku || d.variant_id,
+        product_name: product.product_name || "Crocs Classic",
+        color: variant.color || "",
+        size: variant.size || "",
+        quantity: qty,
+        normal_price: normalPrice,
+        selling_price: sellingPrice,
+        is_negotiated: isNegotiated,
+        discount_amount: discountAmount,
+        crocs_incentive_unit: Number(d.crocs_incentive_unit) || 0,
+        vendor_payable_unit: Number(d.vendor_payable_unit) || 0,
+        subtotal: Number(d.subtotal) || (sellingPrice * qty),
+        total_vendor_payable: Number(d.total_vendor_payable) || (Number(d.vendor_payable_unit) * qty),
+        total_crocs_incentive: Number(d.total_crocs_incentive) || (Number(d.crocs_incentive_unit) * qty),
+        vendor_remaining_payable: Number(d.vendor_remaining_payable) || 0,
+        settlement_status: d.settlement_status || (Number(d.vendor_remaining_payable) === 0 ? "PAID" : "UNPAID")
+      };
+    });
+
+    enrichedSoldItems.sort((a, b) => {
+      const timeA = a.transaction_date ? new Date(a.transaction_date).getTime() : 0;
+      const timeB = b.transaction_date ? new Date(b.transaction_date).getTime() : 0;
+      if (!isNaN(timeA) && !isNaN(timeB) && timeB !== timeA) return timeB - timeA;
+      return String(b.sales_id || "").localeCompare(String(a.sales_id || ""));
+    });
+
     return {
       vendor: vendor,
       consignment_summary: {
@@ -448,6 +506,7 @@ const VendorService = (function() {
         active_receivable_claims: claimsData.total_active_claims,
         net_amount_due: Math.max(0, payablesData.total_gross_payable - claimsData.total_active_claims)
       },
+      sold_items: enrichedSoldItems,
       unpaid_items: payablesData.items,
       active_claims: claimsData.claims,
       settlement_history: settlements

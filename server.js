@@ -214,6 +214,8 @@ const MIME_TYPES = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon'
 };
@@ -364,6 +366,110 @@ const server = http.createServer((req, res) => {
       return;
     }
 
+    // 8b. POST /api/variants/batch (Create Multiple Variants at Once)
+    if (pathname === '/api/variants/batch' && req.method === 'POST') {
+      getRequestBody(data => {
+        const token = extractToken();
+        const variants = data.variants || [];
+        if (!Array.isArray(variants) || variants.length === 0) {
+          res.writeHead(400);
+          res.end(JSON.stringify({ success: false, error: "Daftar varian kosong." }));
+          return;
+        }
+        const results = [];
+        const errors = [];
+        for (const v of variants) {
+          const resV = AdminController.saveVariant(token, v);
+          if (resV.success) {
+            results.push(resV);
+          } else {
+            errors.push({ sku: v.sku, error: resV.error });
+          }
+        }
+        res.writeHead(errors.length > 0 && results.length === 0 ? 400 : 200);
+        res.end(JSON.stringify({
+          success: errors.length === 0,
+          createdCount: results.length,
+          errors: errors,
+          results: results
+        }));
+      });
+      return;
+    }
+
+    // 8c. POST /api/upload-images (Upload Local Images to /uploads/)
+    if (pathname === '/api/upload-images' && req.method === 'POST') {
+      getRequestBody(data => {
+        const token = extractToken();
+        const session = AuthService.validateSession(token);
+        if (!session.valid) {
+          res.writeHead(401);
+          res.end(JSON.stringify({ success: false, error: "Sesi tidak valid." }));
+          return;
+        }
+
+        try {
+          const images = data.images || [];
+          if (!Array.isArray(images) || images.length === 0) {
+            res.writeHead(400);
+            res.end(JSON.stringify({ success: false, error: "Tidak ada gambar yang diunggah." }));
+            return;
+          }
+
+          const uploadsDir = path.join(PUBLIC_DIR, 'uploads');
+          if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+          }
+
+          const savedUrls = [];
+          for (let i = 0; i < images.length; i++) {
+            const item = images[i];
+            if (!item) continue;
+            
+            // Check if already an existing URL (e.g. starts with http or /uploads/)
+            if (typeof item === 'string' && (item.startsWith('http') || item.startsWith('/uploads/'))) {
+              savedUrls.push(item);
+              continue;
+            }
+            if (item.url && (item.url.startsWith('http') || item.url.startsWith('/uploads/'))) {
+              savedUrls.push(item.url);
+              continue;
+            }
+
+            const rawData = item.data || item.base64 || (typeof item === 'string' ? item : null);
+            if (!rawData) continue;
+
+            const matches = rawData.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+            let ext = '.jpg';
+            let buffer;
+            if (matches && matches.length === 3) {
+              const mime = matches[1].toLowerCase();
+              if (mime.includes('png')) ext = '.png';
+              else if (mime.includes('webp')) ext = '.webp';
+              else if (mime.includes('gif')) ext = '.gif';
+              buffer = Buffer.from(matches[2], 'base64');
+            } else {
+              buffer = Buffer.from(rawData, 'base64');
+            }
+
+            const rawName = item.name || `photo_${i}`;
+            const cleanName = rawName.toLowerCase().replace(/[^a-z0-9_-]/g, '_').replace(/\.[^/.]+$/, "");
+            const filename = `prod_${Date.now()}_${i}_${cleanName.slice(0, 30)}${ext}`;
+            const targetPath = path.join(uploadsDir, filename);
+            fs.writeFileSync(targetPath, buffer);
+            savedUrls.push(`/uploads/${filename}`);
+          }
+
+          res.writeHead(200);
+          res.end(JSON.stringify({ success: true, urls: savedUrls }));
+        } catch (err) {
+          res.writeHead(500);
+          res.end(JSON.stringify({ success: false, error: "Gagal menyimpan gambar: " + err.message }));
+        }
+      });
+      return;
+    }
+
     // 9. GET /api/inventory
     if (pathname === '/api/inventory' && req.method === 'GET') {
       const token = extractToken();
@@ -461,6 +567,7 @@ const server = http.createServer((req, res) => {
       getRequestBody(data => {
         try {
           data.created_by = session.user.username;
+          data.caller_token = token;
           const result = SalesService.createSale(data);
           res.writeHead(200);
           res.end(JSON.stringify(result));

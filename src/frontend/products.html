@@ -78,7 +78,7 @@
               <i class="fa-solid fa-box-archive" style="color: var(--accent);"></i> Real-Time Inventory
             </span>
           </div>
-          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">Katalog master produk, varian ukuran, pemisahan stok sendiri vs konsinyasi, dan penerimaan stok FIFO</p>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 0.25rem;">Etalase model produk, rincian stok & varian per ukuran, pemisahan stok sendiri vs titip jual, dan riwayat mutasi persediaan</p>
         </div>
         
         <!-- User Profile Pill -->
@@ -107,13 +107,13 @@
       <!-- SUB-NAVIGATION TABS -->
       <div style="display: flex; gap: 0.5rem; border-bottom: 2px solid var(--border); margin-bottom: 1.5rem; overflow-x: auto;">
         <button class="tab-btn active" id="tabBtnProducts" onclick="switchTab('products')" style="padding: 0.75rem 1.25rem; font-weight: 700; font-size: 0.9rem; background: none; border: none; cursor: pointer; border-bottom: 3px solid var(--primary); color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
-          <i class="fa-solid fa-layer-group"></i> Katalog Master Produk
+          <i class="fa-solid fa-layer-group"></i> Etalase Toko
         </button>
         <button class="tab-btn" id="tabBtnInventory" onclick="switchTab('inventory')" style="padding: 0.75rem 1.25rem; font-weight: 600; font-size: 0.9rem; background: none; border: none; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
-          <i class="fa-solid fa-boxes-stacked"></i> Stok & Varian (Inventaris)
+          <i class="fa-solid fa-boxes-stacked"></i> Rincian Stok & Varian
         </button>
         <button class="tab-btn" id="tabBtnStockIn" onclick="switchTab('stockin')" style="padding: 0.75rem 1.25rem; font-weight: 600; font-size: 0.9rem; background: none; border: none; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
-          <i class="fa-solid fa-dolly"></i> Penerimaan Stok (Stock In)
+          <i class="fa-solid fa-handshake"></i> Penerimaan Titip Jual
         </button>
         <button class="tab-btn" id="tabBtnMovements" onclick="switchTab('movements')" style="padding: 0.75rem 1.25rem; font-weight: 600; font-size: 0.9rem; background: none; border: none; cursor: pointer; border-bottom: 3px solid transparent; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
           <i class="fa-solid fa-clock-rotate-left"></i> Riwayat Mutasi Stok
@@ -199,7 +199,7 @@
           <div class="kpi-card" style="border-left: 4px solid #8B5CF6;">
             <div class="kpi-label">Stok Titip Jual (VENDOR)</div>
             <div class="kpi-value" id="invTotalConsignment" style="font-size: 1.4rem; color: #7C3AED;">0</div>
-            <div class="kpi-sub">Barang konsinyasi vendor</div>
+            <div class="kpi-sub">Barang titipan partner/vendor</div>
           </div>
         </div>
 
@@ -218,7 +218,7 @@
             </select>
           </div>
           <button onclick="switchTab('stockin')" class="btn btn-outline" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.25rem;">
-            <i class="fa-solid fa-plus"></i> Terima Stok Baru (Stock In)
+            <i class="fa-solid fa-handshake"></i> Penerimaan Titip Jual
           </button>
         </div>
 
@@ -234,7 +234,7 @@
                   <th style="text-align: right;">Harga Jual</th>
                   <th style="text-align: right;" class="owner-cost-col">Modal FIFO</th>
                   <th style="text-align: center; background: rgba(23, 59, 53, 0.05);">Stok Sendiri (OWNED)<br><span style="font-size: 0.7rem; font-weight: normal;">Fisik | Booking | Siap</span></th>
-                  <th style="text-align: center; background: rgba(139, 92, 246, 0.05);">Stok Vendor (CONSIGN)<br><span style="font-size: 0.7rem; font-weight: normal;">Fisik | Booking | Siap</span></th>
+                  <th style="text-align: center; background: rgba(139, 92, 246, 0.05);">Titip Jual (VENDOR)<br><span style="font-size: 0.7rem; font-weight: normal;">Fisik | Booking | Siap</span></th>
                   <th style="text-align: right;">Total Siap Jual</th>
                   <th style="text-align: center;">Status</th>
                   <th style="text-align: center;">Batch FIFO</th>
@@ -249,99 +249,141 @@
       </section>
 
       <!-- =================================================================== -->
-      <!-- TAB 3: PENERIMAAN STOK (STOCK IN: SUPPLIER & CONSIGNMENT) -->
+      <!-- TAB 3: PENERIMAAN TITIP JUAL (KONSINYASI VENDOR) -->
       <!-- =================================================================== -->
       <section id="sectionStockIn" class="tab-content" style="display: none;">
         <div style="max-width: 900px; margin: 0 auto;">
+          <!-- Informational Notice Banner to redirect own-stock purchases -->
+          <div style="background: #FFFBEB; border: 1px solid #FDE68A; padding: 0.9rem 1.25rem; border-radius: 10px; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+              <i class="fa-solid fa-circle-info" style="color: #D97706; font-size: 1.3rem;"></i>
+              <div>
+                <strong style="color: #92400E; font-size: 0.88rem;">Penerimaan Khusus Barang Titip Jual:</strong>
+                <div style="font-size: 0.82rem; color: #B45309; margin-top: 0.15rem;">
+                  Form ini khusus mencatat fisik barang titip jual (konsinyasi) dari partner/vendor tanpa modal awal. Jika Anda ingin mencatat pengadaan barang beli milik toko sendiri, gunakan menu <strong>Pembelian Stok</strong>.
+                </div>
+              </div>
+            </div>
+            <a href="purchases.html" class="btn btn-outline" style="white-space: nowrap; font-size: 0.82rem; border-color: #F59E0B; color: #B45309; background: white; padding: 0.45rem 0.9rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+              <i class="fa-solid fa-truck-ramp-box"></i> Buka Pembelian Stok
+            </a>
+          </div>
+
           <div class="admin-card">
             <div class="admin-card-header">
               <div>
-                <h3 style="font-size: 1.1rem; color: var(--primary);"><i class="fa-solid fa-dolly"></i> Form Penerimaan Stok (Stock In)</h3>
-                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">Catat barang masuk secara akurat: Pembelian Supplier (FIFO) atau Barang Titipan Konsinyasi Vendor.</p>
+                <h3 style="font-size: 1.15rem; color: var(--primary);"><i class="fa-solid fa-handshake"></i> Form Penerimaan Barang Titip Jual</h3>
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">Catat penerimaan fisik barang titip jual dari partner. Insentif / komisi CrocsCircle dihitung otomatis saat barang laku terjual.</p>
               </div>
             </div>
 
             <form id="stockInForm" onsubmit="handleStockInSubmit(event)" style="padding: 1.25rem;">
-              <!-- Ownership Type Selector -->
-              <div style="background: #F8FAFC; border: 1px solid var(--border); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
-                <label style="font-weight: 700; font-size: 0.9rem; color: var(--text-main); display: block; margin-bottom: 0.6rem;">Pilih Tipe Kepemilikan Barang Masuk:</label>
-                <div style="display: flex; gap: 2rem;">
-                  <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 600;">
-                    <input type="radio" name="ownershipType" value="OWN_STOCK" checked onchange="toggleOwnershipFields()">
-                    <span>A. Pembelian Stok Supplier (Milik CrocsCircle / FIFO)</span>
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #7C3AED;">
-                    <input type="radio" name="ownershipType" value="VENDOR_CONSIGNMENT" onchange="toggleOwnershipFields()">
-                    <span>B. Barang Titip Jual Vendor (Konsinyasi / HPP 0)</span>
-                  </label>
-                </div>
-              </div>
+              <!-- Compatibility hidden radio -->
+              <input type="radio" name="ownershipType" value="VENDOR_CONSIGNMENT" checked style="display: none;">
 
-              <!-- Vendor Selection (Only for CONSIGNMENT) -->
-              <div id="consignmentFields" style="display: none; margin-bottom: 1.25rem; background: #FAF5FF; border: 1px solid #E9D5FF; padding: 1rem; border-radius: 8px;">
-                <label style="font-weight: 700; font-size: 0.85rem; color: #6B21A8; display: block; margin-bottom: 0.4rem;">Pilih Vendor Konsinyasi:</label>
-                <select id="stockInVendorSelect" style="width: 100%; padding: 0.65rem; border: 1px solid #D8B4FE; border-radius: 6px; background: white; font-size: 0.88rem;">
+              <!-- Partner Selection -->
+              <div style="margin-bottom: 1.25rem; background: #FAF5FF; border: 1px solid #E9D5FF; padding: 1rem; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                  <label style="font-weight: 700; font-size: 0.88rem; color: #6B21A8;">Pilih Partner / Pemilik Barang Titip Jual: *</label>
+                  <a href="finance.html#vendor" target="_blank" style="font-size: 0.76rem; color: #7C3AED; text-decoration: underline;">
+                    <i class="fa-solid fa-gear"></i> Atur Bagi Hasil di Rekonsiliasi Vendor
+                  </a>
+                </div>
+                <select id="stockInVendorSelect" required onchange="calculateTitipJualPreview()" style="width: 100%; padding: 0.65rem; border: 1px solid #D8B4FE; border-radius: 6px; background: white; font-size: 0.9rem;">
                   <!-- Populated dynamically -->
                 </select>
-                <span style="font-size: 0.74rem; color: #7E22CE; margin-top: 0.35rem; display: block;">Barang konsinyasi tidak membebani HPP CrocsCircle dan hak vendor dicatat terpisah saat terjual.</span>
+                <span style="font-size: 0.74rem; color: #7E22CE; margin-top: 0.35rem; display: block;">Barang titip jual bernilai modal Rp 0 bagi toko dan hak partner dibayarkan setelah barang terjual di Kasir/POS.</span>
               </div>
 
-              <!-- Supplier Purchase Header (Only for OWN_STOCK) -->
-              <div id="supplierFields" style="display: block; margin-bottom: 1.25rem;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                  <div>
-                    <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Nama Supplier / Sumber Pengadaan:</label>
-                    <input type="text" id="stockInSupplierName" placeholder="Contoh: Supplier Resmi Jakarta" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
-                  </div>
-                  <div>
-                    <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">No. Purchase / Invoice (Opsional):</label>
-                    <input type="text" id="stockInPurchaseId" placeholder="Otomatis jika dikosongkan" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
-                  </div>
-                </div>
-              </div>
-
-              <!-- Item Selection & Details -->
-              <div style="border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
-                <h4 style="font-size: 0.9rem; margin: 0 0 0.85rem 0; color: var(--primary);"><i class="fa-solid fa-list-check"></i> Detail Varian & Kuantitas Fisik</h4>
+              <!-- Detail Varian & Kuantitas Fisik -->
+              <div style="border: 1px solid var(--border); border-radius: 8px; padding: 1.1rem; margin-bottom: 1.25rem;">
+                <h4 style="font-size: 0.92rem; margin: 0 0 0.85rem 0; color: var(--primary);"><i class="fa-solid fa-boxes-stacked"></i> Detail Varian & Kuantitas Fisik</h4>
                 
                 <div style="margin-bottom: 1rem;">
-                  <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Pilih SKU / Varian Produk:</label>
-                  <select id="stockInVariantSelect" required style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; background: white; font-size: 0.88rem;">
+                  <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Pilih SKU / Varian Produk: *</label>
+                  <select id="stockInVariantSelect" required onchange="calculateTitipJualPreview()" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; background: white; font-size: 0.9rem;">
                     <option value="">-- Pilih SKU Varian --</option>
                   </select>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                   <div>
-                    <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Jumlah Kuantitas Diterima (Pcs):</label>
-                    <input type="number" id="stockInQuantity" min="1" required placeholder="Contoh: 10" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700;">
+                    <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Jumlah Kuantitas Diterima (Pcs): *</label>
+                    <input type="number" id="stockInQuantity" min="1" required placeholder="Contoh: 5" oninput="calculateTitipJualPreview()" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700;">
                   </div>
 
-                  <div id="costInputWrapper">
-                    <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Harga Modal Satuan (Rp) / Unit Cost:</label>
-                    <input type="number" id="stockInUnitCost" min="0" placeholder="Contoh: 550000" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
-                    <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.2rem;">Menjadi harga dasar batch FIFO persediaan CrocsCircle.</span>
+                  <div>
+                    <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Catatan Penerimaan / No. Resi / Surat Jalan:</label>
+                    <input type="text" id="stockInNotes" placeholder="Contoh: Titipan batch 2, kondisi mulus lengkap box" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
                   </div>
-                </div>
-
-                <div style="margin-top: 1rem;">
-                  <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Catatan Penerimaan / No. Resi / Keterangan:</label>
-                  <input type="text" id="stockInNotes" placeholder="Catatan opsional..." style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
                 </div>
               </div>
 
-              <!-- Partial Delivery Checkbox for Supplier -->
-              <div id="partialDeliveryWrapper" style="margin-bottom: 1.25rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-main); cursor: pointer;">
-                  <input type="checkbox" id="stockInIsPartial">
-                  <span>Ini adalah pengiriman bertahap (penerimaan sebagian / partial receipt)</span>
-                </label>
+              <!-- Live Preview Rincian Bagi Hasil & Insentif Toko -->
+              <div id="titipJualPreviewBox" style="background: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 1.1rem; margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                  <div style="font-weight: 700; font-size: 0.9rem; color: #166534; display: flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-coins"></i> Rincian Bagi Hasil & Insentif Toko CrocsCircle
+                  </div>
+                  <span id="previewVendorNameBadge" style="background: #DCFCE7; color: #15803D; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 4px;">Partner: Dzaki</span>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center; margin-bottom: 1rem;">
+                  <div style="background: white; border: 1px solid #DCFCE7; border-radius: 6px; padding: 0.75rem;">
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Harga Jual Etalase Toko</div>
+                    <div id="prevSellingPrice" style="font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin-top: 0.2rem;">Rp 0</div>
+                    <div style="font-size: 0.7rem; color: #64748B;">Harga resmi di kasir POS</div>
+                  </div>
+                  <div style="background: white; border: 1px solid #DCFCE7; border-radius: 6px; padding: 0.75rem;">
+                    <div style="font-size: 0.75rem; color: #6B21A8;">Hak Bersih Partner (Vendor)</div>
+                    <div id="prevVendorShare" style="font-size: 1.15rem; font-weight: 800; color: #7C3AED; margin-top: 0.2rem;">Rp 0</div>
+                    <div style="font-size: 0.7rem; color: #64748B;" id="prevVendorShareNote">Disetor setelah barang laku</div>
+                  </div>
+                  <div style="background: #F0FDF4; border: 1.5px solid #22C55E; border-radius: 6px; padding: 0.75rem;">
+                    <div style="font-size: 0.75rem; color: #15803D; font-weight: 700;">Insentif / Margin CrocsCircle</div>
+                    <div id="prevCrocsIncentive" style="font-size: 1.25rem; font-weight: 800; color: #16A34A; margin-top: 0.2rem;">Rp 0</div>
+                    <div style="font-size: 0.7rem; color: #15803D; font-weight: 600;" id="prevTotalIncentive">Keuntungan bersih toko per unit</div>
+                  </div>
+                </div>
+
+                <!-- Custom Override / Adjustment Section -->
+                <div style="background: white; border: 1.5px dashed #86EFAC; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 0.85rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <label style="font-weight: 700; font-size: 0.82rem; color: #166534; display: flex; align-items: center; gap: 0.35rem;">
+                      <i class="fa-solid fa-sliders" style="color: #16A34A;"></i> Atur / Sesuaikan Pembagian Hasil Batch Ini (Opsional):
+                    </label>
+                    <button type="button" onclick="resetToVendorDefaultTerms()" class="btn btn-outline" style="font-size: 0.72rem; padding: 2px 8px; border-color: #86EFAC; color: #166534; background: #F0FDF4;">
+                      <i class="fa-solid fa-rotate-left"></i> Reset ke Nilai Default Partner
+                    </button>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                      <label style="font-size: 0.76rem; font-weight: 600; color: #6B21A8; display: block; margin-bottom: 0.2rem;">
+                        Hak Bersih Partner per Pasang (Rp):
+                      </label>
+                      <input type="number" id="customVendorShareInput" placeholder="Contoh: 270000" oninput="onCustomVendorShareChange()" style="width: 100%; padding: 0.55rem; border: 1px solid #D8B4FE; border-radius: 6px; font-weight: 700; color: #6B21A8; background: #FAF5FF; font-size: 0.9rem;">
+                      <span style="font-size: 0.68rem; color: #7E22CE; margin-top: 0.2rem; display: block;">Uang yang disetor ke partner per pasang saat laku.</span>
+                    </div>
+                    <div>
+                      <label style="font-size: 0.76rem; font-weight: 600; color: #166534; display: block; margin-bottom: 0.2rem;">
+                        Insentif / Laba Toko per Pasang (Rp):
+                      </label>
+                      <input type="number" id="customCrocsIncentiveInput" placeholder="Contoh: 10000" oninput="onCustomCrocsIncentiveChange()" style="width: 100%; padding: 0.55rem; border: 1px solid #86EFAC; border-radius: 6px; font-weight: 700; color: #16A34A; background: #F0FDF4; font-size: 0.9rem;">
+                      <span style="font-size: 0.68rem; color: #15803D; margin-top: 0.2rem; display: block;">Keuntungan bersih toko per pasang saat laku terjual.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="font-size: 0.75rem; color: #166534; line-height: 1.4; display: flex; align-items: flex-start; gap: 0.4rem;">
+                  <i class="fa-solid fa-circle-check" style="margin-top: 0.15rem;"></i>
+                  <span>Insentif tersimpan khusus untuk batch ini: ketika terjual di kasir POS, sistem langsung mencatat laba kotor toko dan kewajiban setoran vendor sesuai angka yang Anda tentukan di atas.</span>
+                </div>
               </div>
 
               <div style="display: flex; justify-content: flex-end; gap: 1rem;">
-                <button type="reset" class="btn btn-outline">Reset Form</button>
-                <button type="submit" id="stockInSubmitBtn" class="btn btn-primary" style="padding: 0.75rem 1.75rem;">
-                  <i class="fa-solid fa-check-circle"></i> Konfirmasi Penerimaan Stok
+                <button type="reset" class="btn btn-outline" onclick="setTimeout(calculateTitipJualPreview, 50)">Reset Form</button>
+                <button type="submit" id="stockInSubmitBtn" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 700;">
+                  <i class="fa-solid fa-check-circle"></i> Konfirmasi Penerimaan Titip Jual
                 </button>
               </div>
             </form>
@@ -360,12 +402,12 @@
             <select id="movCategoryFilter" style="padding: 0.6rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 0.88rem; background: white;" onchange="loadStockMovements()">
               <option value="ALL">Semua Kepemilikan</option>
               <option value="OWNED">Stok Sendiri (OWNED)</option>
-              <option value="CONSIGNMENT">Konsinyasi (CONSIGNMENT)</option>
+              <option value="CONSIGNMENT">Titip Jual (VENDOR)</option>
             </select>
             <select id="movTypeFilter" style="padding: 0.6rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 0.88rem; background: white;" onchange="loadStockMovements()">
               <option value="ALL">Semua Aktivitas</option>
               <option value="PURCHASE_RECEIPT">Penerimaan Pembelian</option>
-              <option value="CONSIGNMENT_RECEIPT">Titipan Konsinyasi</option>
+              <option value="CONSIGNMENT_RECEIPT">Penerimaan Titip Jual</option>
               <option value="SALES_DISPATCH">Penjualan Kasir</option>
               <option value="STOCK_RESERVATION">Reservasi PO</option>
               <option value="PO_FULFILLMENT">Pemenuhan PO</option>
@@ -411,10 +453,16 @@
   <!-- =================================================================== -->
   <!-- MODAL: TAMBAH / EDIT PRODUK -->
   <!-- =================================================================== -->
+  <!-- =================================================================== -->
+  <!-- MODAL: TAMBAH / EDIT PRODUK (DENGAN LOCAL MULTI-FOTO & BATCH VARIAN) -->
+  <!-- =================================================================== -->
   <div id="productModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
-    <div style="background: white; border-radius: 12px; width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; box-shadow: var(--shadow-lg);">
+    <div style="background: white; border-radius: 12px; width: 100%; max-width: 680px; max-height: 92vh; overflow-y: auto; padding: 1.5rem; box-shadow: var(--shadow-lg);">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
-        <h3 id="productModalTitle" style="margin: 0; font-size: 1.15rem; color: var(--primary);">Tambah Master Produk Baru</h3>
+        <div>
+          <h3 id="productModalTitle" style="margin: 0; font-size: 1.15rem; color: var(--primary);">Tambah Produk Baru ke Etalase</h3>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">Isi model produk, foto dari komputer/URL, dan ukuran awal</span>
+        </div>
         <button onclick="closeProductModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #94A3B8;">&times;</button>
       </div>
 
@@ -423,13 +471,13 @@
         
         <div style="margin-bottom: 1rem;">
           <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Nama Produk *</label>
-          <input type="text" id="modalProductName" required placeholder="Contoh: Crocs Classic Clog" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+          <input type="text" id="modalProductName" required placeholder="Contoh: Crocs Classic Clog" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;" oninput="syncSuggestedModelAndSku()">
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
           <div>
             <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Model Crocs</label>
-            <input type="text" id="modalProductModel" placeholder="Contoh: Classic, Echo, Mega Crush" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+            <input type="text" id="modalProductModel" placeholder="Contoh: Classic, Echo, Mega Crush" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;" oninput="syncSuggestedModelAndSku()">
           </div>
           <div>
             <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Kategori *</label>
@@ -439,41 +487,130 @@
           </div>
         </div>
 
-        <div style="margin-bottom: 1rem;">
-          <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">URL Foto Produk</label>
-          <input type="url" id="modalProductImage" placeholder="https://..." style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+        <!-- ========================================== -->
+        <!-- FOTO PRODUK: UNGGAH DARI KOMPUTER + MULTI-FOTO -->
+        <!-- ========================================== -->
+        <div style="margin-bottom: 1.25rem; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <label style="font-weight: 700; font-size: 0.85rem; color: var(--primary); margin: 0;">
+              <i class="fa-solid fa-camera"></i> Foto Produk (Bisa Banyak Foto)
+            </label>
+            <button type="button" onclick="toggleManualUrlInput()" style="background: none; border: none; color: var(--primary); font-size: 0.75rem; font-weight: 600; cursor: pointer; text-decoration: underline;">
+              <i class="fa-solid fa-link"></i> <span id="manualUrlToggleText">Atau Masukkan Link URL Web</span>
+            </button>
+          </div>
+
+          <!-- Dropzone Area -->
+          <div id="imageDropZone" onclick="triggerFileInput()" style="border: 2px dashed #94A3B8; border-radius: 8px; padding: 1.25rem; text-align: center; background: white; cursor: pointer; transition: all 0.2s;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 1.8rem; color: var(--primary); margin-bottom: 0.4rem;"></i>
+            <div style="font-size: 0.88rem; font-weight: 700; color: var(--text-main);">
+              Klik untuk pilih foto dari komputer / drag & drop di sini
+            </div>
+            <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.2rem;">
+              Format: JPG, PNG, WEBP (bisa pilih beberapa foto sekaligus). Foto pertama otomatis jadi <strong>Sampul Utama</strong>.
+            </div>
+            <input type="file" id="modalProductFileInput" multiple accept="image/*" style="display: none;" onchange="handleFileSelection(event)">
+          </div>
+
+          <!-- Optional URL Web Input -->
+          <div id="manualUrlContainer" style="display: none; margin-top: 0.75rem; background: white; padding: 0.75rem; border: 1px solid var(--border); border-radius: 6px;">
+            <label style="font-size: 0.78rem; font-weight: 600; display: block; margin-bottom: 0.25rem;">Masukkan URL Foto dari Web:</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="url" id="manualUrlInput" placeholder="https://images.unsplash.com/... atau link foto online" style="flex: 1; padding: 0.55rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem;">
+              <button type="button" onclick="addManualUrlImage()" class="btn btn-outline" style="padding: 0.55rem 0.85rem; font-size: 0.8rem; white-space: nowrap;">
+                <i class="fa-solid fa-plus"></i> Tambah URL
+              </button>
+            </div>
+          </div>
+
+          <!-- Previews Gallery Grid -->
+          <div id="imagePreviewGrid" style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.75rem;">
+            <!-- Rendered by JS -->
+          </div>
+          <div id="imageUploadStatus" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem; display: none;"></div>
         </div>
 
         <div style="margin-bottom: 1rem;">
           <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Deskripsi Produk</label>
-          <textarea id="modalProductDesc" rows="3" placeholder="Informasi material, fitur, dan panduan ukuran..." style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;"></textarea>
+          <textarea id="modalProductDesc" rows="2" placeholder="Informasi material, fitur, dan panduan ukuran..." style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;"></textarea>
         </div>
 
-        <div style="display: flex; gap: 1.5rem; margin-bottom: 1.25rem;">
-          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; cursor: pointer;">
+        <div style="display: flex; gap: 1.5rem; margin-bottom: 1rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
             <input type="checkbox" id="modalProductActive" checked>
             <span>Aktif (Dapat Ditransaksikan)</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; cursor: pointer;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
             <input type="checkbox" id="modalProductPublished" checked>
             <span>Tampilkan di Toko Publik</span>
           </label>
         </div>
 
+        <!-- ========================================== -->
+        <!-- DAFTARKAN VARIAN UKURAN AWAL SEKALIGUS -->
+        <!-- ========================================== -->
+        <div id="initialVariantsSection" style="margin-bottom: 1.25rem; border-top: 1px dashed var(--border); padding-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; font-weight: 700; color: var(--primary); cursor: pointer;">
+              <input type="checkbox" id="toggleInitialVariants" onchange="toggleInitialVariantsFields()">
+              <span>⚡ Langsung Buat Varian Ukuran Awal Sekaligus</span>
+            </label>
+            <span style="font-size: 0.74rem; color: var(--text-muted);">Tidak perlu bolak-balik modal</span>
+          </div>
+
+          <div id="initialVariantsFields" style="display: none; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; padding: 1rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.85rem;">
+              <div>
+                <label style="font-weight: 600; font-size: 0.82rem; display: block; margin-bottom: 0.25rem;">Warna Varian *</label>
+                <input type="text" id="initVarColor" placeholder="Contoh: Black, Bone, White" value="Black" style="width: 100%; padding: 0.55rem; border: 1px solid var(--border); border-radius: 6px;" oninput="updateInitialVariantPreview()">
+              </div>
+              <div>
+                <label style="font-weight: 600; font-size: 0.82rem; display: block; margin-bottom: 0.25rem;">Harga Jual Katalog (Rp) *</label>
+                <input type="number" id="initVarPrice" min="0" placeholder="Contoh: 1099000" style="width: 100%; padding: 0.55rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700;" oninput="updateInitialVariantPreview()">
+              </div>
+            </div>
+
+            <div style="margin-bottom: 0.85rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <label style="font-weight: 600; font-size: 0.82rem; margin: 0;">Pilih Ukuran yang Tersedia (Klik untuk Memilih):</label>
+                <div style="display: flex; gap: 0.35rem;">
+                  <button type="button" onclick="selectBatchSizes('POPULAR', 'init')" style="background: white; border: 1px solid #A7F3D0; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; color: var(--primary); font-weight: 600;">Pilih M6-M10 (Laku)</button>
+                  <button type="button" onclick="selectBatchSizes('ALL_M', 'init')" style="background: white; border: 1px solid #A7F3D0; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; color: var(--primary); font-weight: 600;">Semua M</button>
+                  <button type="button" onclick="selectBatchSizes('CLEAR', 'init')" style="background: white; border: 1px solid #CBD5E1; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; color: #64748B;">Reset</button>
+                </div>
+              </div>
+
+              <!-- Size Buttons Grid -->
+              <div id="initSizeChipsContainer" style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                <!-- Buttons rendered dynamically -->
+              </div>
+            </div>
+
+            <div class="owner-cost-col" style="margin-bottom: 0.75rem;">
+              <label style="font-weight: 600; font-size: 0.82rem; display: block; margin-bottom: 0.25rem;">Reference HPP (Rp) (Opsional)</label>
+              <input type="number" id="initVarRefHpp" min="0" placeholder="Estimasi modal perolehan (Rp)" style="width: 100%; padding: 0.55rem; border: 1px solid var(--border); border-radius: 6px;">
+            </div>
+
+            <div id="initVariantPreviewText" style="font-size: 0.76rem; color: #065F46; background: white; padding: 0.5rem 0.75rem; border-radius: 6px; border: 1px solid #A7F3D0;">
+              Pilih minimal 1 ukuran di atas. SKU akan di-generate otomatis.
+            </div>
+          </div>
+        </div>
+
         <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--border); padding-top: 1rem;">
           <button type="button" onclick="closeProductModal()" class="btn btn-outline">Batal</button>
-          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-save"></i> Simpan Produk</button>
+          <button type="submit" id="btnSubmitProduct" class="btn btn-primary"><i class="fa-solid fa-save"></i> Simpan Produk</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- =================================================================== -->
-  <!-- MODAL: TAMBAH VARIAN PRODUK -->
+  <!-- MODAL: TAMBAH VARIAN PRODUK (DENGAN MODE BATCH SIZE SELECTOR) -->
   <!-- =================================================================== -->
   <div id="variantModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
-    <div style="background: white; border-radius: 12px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; box-shadow: var(--shadow-lg);">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+    <div style="background: white; border-radius: 12px; width: 100%; max-width: 580px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; box-shadow: var(--shadow-lg);">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem;">
         <div>
           <h3 id="variantModalTitle" style="margin: 0; font-size: 1.15rem; color: var(--primary);">Tambah Varian Ukuran & Warna</h3>
           <span style="font-size: 0.78rem; color: var(--text-muted);" id="variantModalSubtitle">Produk: -</span>
@@ -481,46 +618,82 @@
         <button onclick="closeVariantModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #94A3B8;">&times;</button>
       </div>
 
+      <!-- Mode Selector Tabs for Variant -->
+      <div id="variantModeSwitcher" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+        <button type="button" id="varModeBtnBatch" onclick="switchVariantInputMode('batch')" style="padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; font-weight: 700; border: none; cursor: pointer; background: var(--primary); color: white;">
+          ⚡ Pilih Banyak Ukuran Sekaligus (Batch)
+        </button>
+        <button type="button" id="varModeBtnManual" onclick="switchVariantInputMode('manual')" style="padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; border: 1px solid var(--border); cursor: pointer; background: white; color: var(--text-muted);">
+          ✏️ Input Manual (1 Ukuran)
+        </button>
+      </div>
+
       <form id="variantForm" onsubmit="handleVariantFormSubmit(event)">
         <input type="hidden" id="modalVarProductId">
         <input type="hidden" id="modalVarId">
 
-        <div style="margin-bottom: 1rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-            <label style="font-weight: 600; font-size: 0.85rem; margin: 0;">SKU Varian (Wajib Unik) *</label>
-            <button type="button" onclick="generateSuggestedSku()" style="background: none; border: none; color: var(--primary); font-size: 0.75rem; font-weight: 700; cursor: pointer; text-decoration: underline;">
-              <i class="fa-solid fa-wand-magic-sparkles"></i> Auto Format SKU
-            </button>
-          </div>
-          <input type="text" id="modalVarSku" required placeholder="Contoh: CRC-CLS-BN-W7" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700; text-transform: uppercase;">
-          <span style="font-size: 0.74rem; color: #DC2626; display: block; margin-top: 0.2rem;" id="skuErrorText"></span>
-        </div>
-
+        <!-- COMMON FIELDS: COLOR & PRICE -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
           <div>
-            <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Warna</label>
-            <input type="text" id="modalVarColor" placeholder="Contoh: Bone, Black" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+            <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Warna *</label>
+            <input type="text" id="modalVarColor" required placeholder="Contoh: Bone, Black" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;" oninput="updateVarBatchPreview()">
           </div>
-          <div>
-            <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Ukuran Standar Crocs *</label>
-            <input type="text" id="modalVarSize" required placeholder="W6, W7, M8, M9, J1..." style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; text-transform: uppercase;">
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
           <div>
             <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Harga Jual Katalog (Rp) *</label>
-            <input type="number" id="modalVarCatalogPrice" required min="0" placeholder="1099000" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700;">
+            <input type="number" id="modalVarCatalogPrice" required min="0" placeholder="Contoh: 1099000" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700;">
           </div>
-          <div class="owner-cost-col">
-            <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Reference HPP (Rp)</label>
-            <input type="number" id="modalVarRefHpp" min="0" placeholder="600000" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
+        </div>
+
+        <!-- BATCH MODE SECTION -->
+        <div id="varBatchModeContainer">
+          <div style="margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <label style="font-weight: 600; font-size: 0.85rem; margin: 0;">Pilih Ukuran yang Dibuat (Multi-Select):</label>
+              <div style="display: flex; gap: 0.35rem;">
+                <button type="button" onclick="selectBatchSizes('POPULAR', 'modal')" style="background: #F1F5F9; border: 1px solid #CBD5E1; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; color: var(--primary); font-weight: 600;">M6-M10 (Laku)</button>
+                <button type="button" onclick="selectBatchSizes('ALL_M', 'modal')" style="background: #F1F5F9; border: 1px solid #CBD5E1; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; color: var(--primary); font-weight: 600;">Semua M</button>
+                <button type="button" onclick="selectBatchSizes('CLEAR', 'modal')" style="background: #F1F5F9; border: 1px solid #CBD5E1; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; cursor: pointer; color: #64748B;">Reset</button>
+              </div>
+            </div>
+
+            <!-- Modal Size Chips Grid -->
+            <div id="modalSizeChipsContainer" style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+              <!-- Rendered by JS -->
+            </div>
           </div>
+
+          <div id="modalVarBatchPreviewText" style="font-size: 0.76rem; color: #1E40AF; background: #EFF6FF; padding: 0.65rem 0.85rem; border-radius: 6px; border: 1px solid #BFDBFE; margin-bottom: 1rem;">
+            Pilih minimal 1 ukuran di atas. SKU akan di-generate otomatis berstandar CrocsCircle.
+          </div>
+        </div>
+
+        <!-- MANUAL 1-SIZE MODE SECTION -->
+        <div id="varManualModeContainer" style="display: none;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Ukuran Standar Crocs *</label>
+              <input type="text" id="modalVarSize" placeholder="W6, W7, M8, M9..." style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; text-transform: uppercase;" oninput="generateSuggestedSku()">
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <label style="font-weight: 600; font-size: 0.85rem; margin: 0;">SKU Varian *</label>
+                <button type="button" onclick="generateSuggestedSku()" style="background: none; border: none; color: var(--primary); font-size: 0.72rem; font-weight: 700; cursor: pointer; text-decoration: underline;">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> Auto SKU
+                </button>
+              </div>
+              <input type="text" id="modalVarSku" placeholder="Contoh: CRC-CLS-BN-W7" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px; font-weight: 700; text-transform: uppercase;">
+            </div>
+          </div>
+        </div>
+
+        <div class="owner-cost-col" style="margin-bottom: 1.25rem;">
+          <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.35rem;">Reference HPP (Rp)</label>
+          <input type="number" id="modalVarRefHpp" min="0" placeholder="Estimasi modal perolehan (Rp)" style="width: 100%; padding: 0.65rem; border: 1px solid var(--border); border-radius: 6px;">
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--border); padding-top: 1rem;">
           <button type="button" onclick="closeVariantModal()" class="btn btn-outline">Batal</button>
-          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Simpan Varian</button>
+          <button type="submit" id="btnSubmitVariant" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Simpan Varian</button>
         </div>
       </form>
     </div>
@@ -531,12 +704,17 @@
   <!-- =================================================================== -->
   <div id="productDetailModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
     <div style="background: white; border-radius: 12px; width: 100%; max-width: 850px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; box-shadow: var(--shadow-lg);">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; margin-bottom: 1rem;">
         <div>
           <h3 id="detailModalProductName" style="margin: 0; font-size: 1.2rem; color: var(--primary);">Detail Produk</h3>
           <span id="detailModalCategory" style="font-size: 0.8rem; color: var(--text-muted);">Kategori: -</span>
         </div>
         <button onclick="closeProductDetailModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #94A3B8;">&times;</button>
+      </div>
+
+      <!-- Gallery Row inside Detail Modal -->
+      <div id="detailModalGalleryRow" style="display: flex; gap: 0.75rem; align-items: center; margin-bottom: 1.25rem; background: #F8FAFC; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); overflow-x: auto;">
+        <!-- Rendered by JS -->
       </div>
 
       <!-- Varian Section Inside Detail -->
@@ -556,7 +734,7 @@
               <th>Ukuran</th>
               <th style="text-align: right;">Harga Jual</th>
               <th style="text-align: center;">Stok Sendiri</th>
-              <th style="text-align: center;">Stok Konsinyasi</th>
+              <th style="text-align: center;">Stok Titip Jual</th>
               <th style="text-align: right;">Total Siap Jual</th>
               <th style="text-align: center;">Aksi</th>
             </tr>
@@ -608,7 +786,7 @@
 
       <div style="margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
         <h4 style="font-size: 0.95rem; color: #7C3AED; margin: 0 0 0.5rem 0;">
-          <i class="fa-solid fa-handshake"></i> Lot Konsinyasi Vendor (BATCH_KONSINYASI)
+          <i class="fa-solid fa-handshake"></i> Lot Titip Jual Partner (BATCH_KONSINYASI)
         </h4>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
           Stok titipan terisolasi per vendor. Setiap penjualan wajib memotong kuantitas lot milik vendor yang bersangkutan secara FIFO.
